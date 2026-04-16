@@ -132,6 +132,31 @@
   }
   .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
 
+  .opacity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 90px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--fg-soft);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 0 0 1px var(--border-strong);
+    transition: background .1s;
+  }
+  .opacity-slider::-webkit-slider-thumb:hover { background: var(--fg); }
+
   .add {
     position: relative;
     margin-bottom: 24px;
@@ -404,10 +429,15 @@
       <div class="size-toggle">
         <button @click="setScale(-1)" title="Smaller font">A−</button>
         <button @click="setScale(1)" title="Larger font">A+</button>
-        <button @click="cycleBgOpacity()"
-          :title="'Background ' + Math.round(bgOpacity*100) + '%'"
-          x-show="hasBackground">◐</button>
       </div>
+      <input
+        type="range" min="0" max="100" step="1"
+        class="opacity-slider"
+        x-show="hasBackground"
+        :value="Math.round(bgOpacity * 100)"
+        @input="setBgOpacity($event.target.value / 100)"
+        :title="'Background ' + Math.round(bgOpacity * 100) + '%'"
+      >
     </div>
   </header>
 
@@ -592,10 +622,8 @@ document.addEventListener('alpine:init', () => {
       document.documentElement.style.setProperty('--bg-opacity', this.bgOpacity);
     },
 
-    cycleBgOpacity() {
-      const steps = [0, 0.04, 0.08, 0.15, 0.28];
-      const i = steps.findIndex(v => Math.abs(v - this.bgOpacity) < 0.01);
-      this.bgOpacity = steps[(i + 1) % steps.length];
+    setBgOpacity(v) {
+      this.bgOpacity = Math.max(0, Math.min(1, Number(v)));
       localStorage.setItem('planBgOpacity', this.bgOpacity);
       this.applyBgOpacity();
     },
