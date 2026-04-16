@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""plan — daily task planner saved locally."""
+
+import json
+import os
+import subprocess
+import sys
+from datetime import date
+from pathlib import Path
+
+PLANS_DIR = Path(__file__).resolve().parent / "plans"
+PLANS_DIR.mkdir(exist_ok=True)
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+
+STATUS = {
+    "pending": ("☐", DIM),
+    "done":    ("✓", GREEN),
+    "half":    ("◐", YELLOW),
+    "skip":    ("✗", RED),
+}
+
+
+def today_str():
+    return date.today().isoformat()
+
+
+def plan_path(d=None):
+    return PLANS_DIR / f"{d or today_str()}.json"
+
+
+def load_plan(d=None):
+    p = plan_path(d)
+    if p.exists():
+        return json.loads(p.read_text())
+    return {"date": d or today_str(), "tasks": []}
+
+
+def save_plan(plan):
+    plan_path(plan["date"]).write_text(
+        json.dumps(plan, indent=2, ensure_ascii=False) + "\n"
+    )
+
+
+def next_id(plan):
+    return max((t["id"] for t in plan["tasks"]), default=0) + 1
+
+
+def get_task(plan, tid):
+    return next((t for t in plan["tasks"] if t["id"] == tid), None)
+
+
+def show_plan(plan):
+    tasks = plan["tasks"]
+    d = plan["date"]
+    label = "Today" if d == today_str() else ""
+    header = f"{BOLD}{CYAN}📅 {d}{RESET}"
+    if label:
+        header += f"  {DIM}· {label}{RESET}"
+
+    print()
+    print(f"  {header}")
+    print()
+
+    if not tasks:
+        print(f'  {DIM}No tasks yet.  Add one:  plan add "your task"{RESET}')
+        print()
+        return
+
+    for t in tasks:
+        icon, color = STATUS[t["status"]]
+        text = t["text"]
+        if t["status"] == "done":
+            text = f"{DIM}{text}{RESET}"
+        note = t.get("note")
+        note_part = f"  {DIM}· {note}{RESET}" if note else ""
+        print(f"  {DIM}{t['id']:>2}{RESET}  {color}{icon}{RESET}  {text}{note_part}")
+
+    counts = {"done": 0, "half": 0, "skip": 0, "pending": 0}
+    for t in tasks:
+        counts[t["status"]] += 1
+    total = len(tasks)
+    parts = [f"{counts['done']}/{total} done"]
+    if counts["half"]:
+        parts.append(f"{counts['half']} half")
+    if counts["skip"]:
+        parts.append(f"{counts['skip']} skipped")
+    if counts["pending"]:
+        parts.append(f"{counts['pending']} pending")
+    print()
+    print(f"  {DIM}{'─' * 40}{RESET}")
+    print(f"  {DIM}{' · '.join(parts)}{RESET}")
+    print()
+
+
+def parse_id(args, cmd):
+    if not args:
+        sys.exit(f"Usage: plan {cmd} <id>")
+    try:
+        return int(args[0])
+    except ValueError:
+        sys.exit(f"Invalid id: {args[0]}")
+
+
+def cmd_add(args):
+    if not args:
+        sys.exit('Usage: plan add "task description"')
+    plan = load_plan()
+    plan["tasks"].append({
+        "id": next_id(plan),
+        "text": " ".join(args),
+        "status": "pending",
+        "note": None,
+    })
+    save_plan(plan)
+    show_plan(plan)
+
+
+def cmd_set_status(args, cmd, status, need_note):
+    tid = parse_id(args, cmd)
+    plan = load_plan()
+    t = get_task(plan, tid)
+    if not t:
+        sys.exit(f"Task {tid} not found")
+    t["status"] = status
+    if need_note:
+        try:
+            note = input(f"  {DIM}Reason:{RESET} ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit(1)
+        t["note"] = note or None
+    else:
+        t["note"] = None
+    save_plan(plan)
+    show_plan(plan)
+
+
+def cmd_rm(args):
+    tid = parse_id(args, "rm")
+    plan = load_plan()
+    plan["tasks"] = [t for t in plan["tasks"] if t["id"] != tid]
+    save_plan(plan)
+    show_plan(plan)
+
+
+def cmd_edit(args):
+    ed = os.environ.get("EDITOR", "nano")
+    subprocess.call([ed, str(plan_path())])
+
+
+def cmd_show(args):
+    if not args:
+        sys.exit("Usage: plan show <YYYY-MM-DD>")
+    show_plan(load_plan(args[0]))
+
+
+def cmd_list(args):
+    files = sorted(PLANS_DIR.glob("*.json"), reverse=True)
+    if not files:
+        print("\n  No saved plans yet.\n")
+        return
+    print()
+    for f in files:
+        plan = json.loads(f.read_text())
+        n = len(plan["tasks"])
+        done = sum(1 for t in plan["tasks"] if t["status"] == "done")
+        print(f"  {CYAN}{f.stem}{RESET}  {DIM}·{RESET}  {done}/{n} done")
+    print()
+
+
+def cmd_help(args):
+    print(f"""
+{BOLD}plan{RESET} — daily task planner saved locally
+
+{BOLD}Usage:{RESET}
+  plan                       Show today's plan
+  plan add "text"            Add a new task
+  plan done <id>             Mark task as done
+  plan half <id>             Mark as half done (asks for reason)
+  plan skip <id>             Mark as not done (asks for reason)
+  plan rm <id>               Remove a task
+  plan edit                  Open today's plan in $EDITOR
+  plan show <YYYY-MM-DD>     Show a past day's plan
+  plan list                  List all saved dates
+  plan help                  Show this help
+""")
+
+
+HANDLERS = {
+    "add":    cmd_add,
+    "done":   lambda a: cmd_set_status(a, "done", "done", False),
+    "half":   lambda a: cmd_set_status(a, "half", "half", True),
+    "skip":   lambda a: cmd_set_status(a, "skip", "skip", True),
+    "rm":     cmd_rm,
+    "edit":   cmd_edit,
+    "show":   cmd_show,
+    "list":   cmd_list,
+    "help":   cmd_help,
+    "-h":     cmd_help,
+    "--help": cmd_help,
+}
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        show_plan(load_plan())
+        return
+    cmd, rest = args[0], args[1:]
+    h = HANDLERS.get(cmd)
+    if not h:
+        print(f"Unknown command: {cmd}\n")
+        cmd_help([])
+        sys.exit(1)
+    h(rest)
+
+
+if __name__ == "__main__":
+    main()
