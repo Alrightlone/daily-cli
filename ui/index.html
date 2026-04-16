@@ -45,13 +45,26 @@
     --bg-opacity: 0.4;
     --card-glass: rgba(255, 255, 255, 0.78);
     --card-rgb: 255, 255, 255;
+    /* halo around floating text so it stays legible over the background */
+    --halo: rgba(255, 255, 255, 0.92);
+    --halo-soft: rgba(255, 255, 255, 0.6);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
       --card-glass: rgba(20, 20, 20, 0.72);
       --card-rgb: 20, 20, 20;
+      --halo: rgba(0, 0, 0, 0.9);
+      --halo-soft: rgba(0, 0, 0, 0.6);
     }
+  }
+
+  /* text halo — applied to anything floating over the background image */
+  .floating-text {
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 6px var(--halo-soft),
+      0 1px 2px var(--halo-soft);
   }
 
   html, body {
@@ -105,12 +118,16 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.025em;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 6px var(--halo-soft);
   }
 
   .date-chip {
     color: var(--muted);
     font-size: 14px;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 4px var(--halo);
   }
 
   .size-toggle {
@@ -267,17 +284,24 @@
   .text {
     color: var(--fg);
     font-size: 16px;
+    font-weight: 500;
     word-wrap: break-word;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 6px var(--halo-soft),
+      0 1px 2px var(--halo-soft);
   }
   .task.done .text {
     text-decoration: line-through;
     color: var(--muted);
+    font-weight: 400;
   }
 
   .note {
     color: var(--muted);
     font-size: 14px;
     margin-top: 4px;
+    text-shadow: 0 0 4px var(--halo);
   }
 
   .actions {
@@ -306,6 +330,7 @@
     color: var(--muted);
     padding: 56px 0;
     font-size: 15px;
+    text-shadow: 0 0 4px var(--halo);
   }
 
   footer {
@@ -318,6 +343,7 @@
     color: var(--muted);
     font-size: 14px;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 4px var(--halo);
   }
 
   .progress {

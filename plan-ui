@@ -182,11 +182,24 @@ def free_port():
         return s.getsockname()[1]
 
 
-def open_in_chrome_app(url, size=(720, 800), position=None):
-    """Open as a standalone Chrome window (no tabs, no URL bar)."""
+def open_in_chrome_app(url, size=(720, 800), position=None, profile="full"):
+    """Open as a standalone Chrome window (no tabs, no URL bar).
+
+    Each profile gets its own --user-data-dir so window state (size, position)
+    is remembered independently for the full vs. mini windows.
+    """
     chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     w, h = size
-    args = [chrome, f"--app={url}", f"--window-size={w},{h}"]
+    profile_dir = Path.home() / ".cache" / "daily-cli" / f"chrome-{profile}"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    args = [
+        chrome,
+        f"--user-data-dir={profile_dir}",
+        "--no-first-run",
+        "--no-default-browser-check",
+        f"--app={url}",
+        f"--window-size={w},{h}",
+    ]
     if position is not None:
         x, y = position
         args.append(f"--window-position={x},{y}")
@@ -202,17 +215,18 @@ class ReusableServer(socketserver.TCPServer):
 
 def launch(port, mode):
     base = f"http://127.0.0.1:{port}"
+    mini_size = (300, 460)
+    mini_pos = (1580, 80)
+    full_size = (720, 800)
     if mode == "mini":
-        open_in_chrome_app(f"{base}/mini", size=(300, 460), position=(1580, 80))
+        open_in_chrome_app(f"{base}/mini", size=mini_size, position=mini_pos, profile="mini")
     elif mode == "both":
-        open_in_chrome_app(f"{base}/", size=(720, 800))
-        time_delay = threading.Timer(
-            0.4,
-            lambda: open_in_chrome_app(f"{base}/mini", size=(300, 460), position=(1580, 80)),
-        )
-        time_delay.start()
+        open_in_chrome_app(f"{base}/", size=full_size, profile="full")
+        threading.Timer(0.4, lambda: open_in_chrome_app(
+            f"{base}/mini", size=mini_size, position=mini_pos, profile="mini"
+        )).start()
     else:
-        open_in_chrome_app(f"{base}/", size=(720, 800))
+        open_in_chrome_app(f"{base}/", size=full_size, profile="full")
 
 
 def main():

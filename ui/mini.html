@@ -40,11 +40,15 @@
     --bg-image: none;
     --bg-opacity: 0.4;
     --card-glass: rgba(255, 255, 255, 0.8);
+    --halo: rgba(255, 255, 255, 0.92);
+    --halo-soft: rgba(255, 255, 255, 0.6);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
       --card-glass: rgba(20, 20, 20, 0.75);
+      --halo: rgba(0, 0, 0, 0.9);
+      --halo-soft: rgba(0, 0, 0, 0.6);
     }
   }
 
@@ -97,11 +101,13 @@
     font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.01em;
+    text-shadow: 0 0 4px var(--halo);
   }
   .count {
     color: var(--muted);
     font-size: 11.5px;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 3px var(--halo);
   }
 
   .right {
@@ -264,18 +270,25 @@
   .text {
     color: var(--fg);
     font-size: 13px;
+    font-weight: 500;
     word-wrap: break-word;
     padding-top: 1px;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo-soft),
+      0 1px 2px var(--halo-soft);
   }
   .task.done .text {
     text-decoration: line-through;
     color: var(--muted);
+    font-weight: 400;
   }
 
   .note {
     color: var(--muted);
     font-size: 11px;
     margin-top: 1px;
+    text-shadow: 0 0 3px var(--halo);
   }
 
   .rm {
@@ -299,6 +312,7 @@
     color: var(--muted);
     padding: 20px 0;
     font-size: 12px;
+    text-shadow: 0 0 3px var(--halo);
   }
 
   /* Mini modal — tight */
