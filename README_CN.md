@@ -18,7 +18,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/daily-cli.git
+git clone https://github.com/Alrightlone/daily-cli.git
 cd daily-cli
 chmod +x daily
 
