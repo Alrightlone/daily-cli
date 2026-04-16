@@ -43,20 +43,32 @@
     --scale: 1;
     --bg-image: none;
     --bg-opacity: 0.4;
+    /* chip = opaque-ish bg for UI controls (buttons, inputs) — must stay readable */
+    --chip: rgba(255, 255, 255, 0.94);
+    /* card-glass = subtle bg for task rows (hover) — lets image show through */
     --card-glass: rgba(255, 255, 255, 0.78);
     --card-rgb: 255, 255, 255;
     /* halo around floating text so it stays legible over the background */
     --halo: rgba(255, 255, 255, 0.92);
-    --halo-soft: rgba(255, 255, 255, 0.6);
+    --halo-soft: rgba(255, 255, 255, 0.8);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
+      --chip: rgba(20, 20, 20, 0.92);
       --card-glass: rgba(20, 20, 20, 0.72);
       --card-rgb: 20, 20, 20;
-      --halo: rgba(0, 0, 0, 0.9);
-      --halo-soft: rgba(0, 0, 0, 0.6);
+      --halo: rgba(0, 0, 0, 0.92);
+      --halo-soft: rgba(0, 0, 0, 0.8);
     }
+  }
+
+  /* strong, 3-layer halo for small-text controls that float on the background */
+  .strong-halo {
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 10px var(--halo-soft);
   }
 
   /* text halo — applied to anything floating over the background image */
@@ -124,10 +136,14 @@
   }
 
   .date-chip {
-    color: var(--muted);
+    color: var(--fg-soft);
     font-size: 14px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 4px var(--halo);
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 10px var(--halo-soft);
   }
 
   .size-toggle {
@@ -138,24 +154,28 @@
   .size-toggle button {
     min-width: 26px; height: 26px;
     padding: 0 6px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--muted);
+    border: 1px solid var(--border-strong);
+    background: var(--chip);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--fg-soft);
     border-radius: 6px;
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
     transition: all .1s;
   }
-  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
+  .size-toggle button:hover { color: var(--fg); border-color: var(--fg-soft); }
 
   .opacity-slider {
     -webkit-appearance: none;
     appearance: none;
     width: 90px;
-    height: 4px;
-    background: var(--border-strong);
-    border-radius: 2px;
+    height: 5px;
+    background: var(--chip);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
     margin-left: 8px;
@@ -340,10 +360,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: var(--muted);
+    color: var(--fg-soft);
     font-size: 14px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 4px var(--halo);
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 10px var(--halo-soft);
   }
 
   .progress {

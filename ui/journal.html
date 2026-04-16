@@ -24,9 +24,10 @@
     --hover: #f4f4f5;
     --accent: #18181b;
 
+    --chip: rgba(255, 255, 255, 0.94);
     --card-glass: rgba(255, 255, 255, 0.78);
     --halo: rgba(255, 255, 255, 0.92);
-    --halo-soft: rgba(255, 255, 255, 0.6);
+    --halo-soft: rgba(255, 255, 255, 0.8);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -40,9 +41,10 @@
       --border-strong: #3f3f46;
       --hover: #1c1c1c;
       --accent: #fafafa;
+      --chip: rgba(20, 20, 20, 0.92);
       --card-glass: rgba(20, 20, 20, 0.72);
-      --halo: rgba(0, 0, 0, 0.9);
-      --halo-soft: rgba(0, 0, 0, 0.6);
+      --halo: rgba(0, 0, 0, 0.92);
+      --halo-soft: rgba(0, 0, 0, 0.8);
     }
   }
 
@@ -98,22 +100,24 @@
 
   .nav-btn {
     width: 28px; height: 28px;
-    border: 1px solid var(--border);
-    background: var(--card-glass);
+    border: 1px solid var(--border-strong);
+    background: var(--chip);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: var(--muted);
+    color: var(--fg-soft);
     border-radius: 6px;
     cursor: pointer;
     font-family: inherit;
     font-size: 14px;
+    font-weight: 500;
     transition: all .1s;
   }
   .nav-btn:hover:not(:disabled) {
     color: var(--fg);
-    border-color: var(--border-strong);
+    border-color: var(--fg-soft);
   }
-  .nav-btn:disabled { opacity: .3; cursor: default; }
+  .nav-btn:disabled { opacity: .35; cursor: default; }
+  .nav-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
   .date {
     font-size: 20px;
@@ -121,7 +125,8 @@
     letter-spacing: -0.015em;
     text-shadow:
       0 0 2px var(--halo),
-      0 0 6px var(--halo-soft);
+      0 0 6px var(--halo),
+      0 0 12px var(--halo-soft);
   }
 
   .actions {
@@ -133,10 +138,10 @@
 
   .toggle-group {
     display: flex;
-    background: var(--card-glass);
+    background: var(--chip);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 7px;
     padding: 2px;
   }
@@ -144,11 +149,12 @@
     padding: 5px 12px;
     border: none;
     background: transparent;
-    color: var(--muted);
+    color: var(--fg-soft);
     border-radius: 5px;
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
     transition: all .1s;
   }
   .toggle:hover { color: var(--fg); }
@@ -164,26 +170,28 @@
   .size-toggle button {
     min-width: 26px; height: 26px;
     padding: 0 6px;
-    border: 1px solid var(--border);
-    background: var(--card-glass);
+    border: 1px solid var(--border-strong);
+    background: var(--chip);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: var(--muted);
+    color: var(--fg-soft);
     border-radius: 6px;
     cursor: pointer;
     font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
     transition: all .1s;
   }
-  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
+  .size-toggle button:hover { color: var(--fg); }
 
   .opacity-slider {
     -webkit-appearance: none;
     appearance: none;
     width: 70px;
-    height: 4px;
-    background: var(--border-strong);
-    border-radius: 2px;
+    height: 5px;
+    background: var(--chip);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
   }
@@ -197,6 +205,88 @@
     cursor: pointer;
     border: 2px solid var(--card);
     box-shadow: 0 0 0 1px var(--border-strong);
+  }
+
+  /* ── History drawer ──────────────────────────────── */
+  .drawer {
+    background: var(--chip);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    max-height: 340px;
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg-soft);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .drawer-close {
+    width: 22px; height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: all .1s;
+  }
+  .drawer-close:hover { color: var(--fg); background: var(--hover); }
+
+  .entry-list {
+    list-style: none;
+    overflow-y: auto;
+    margin: 0;
+    padding: 4px;
+  }
+  .entry-item {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .1s;
+    color: var(--fg);
+  }
+  .entry-item:hover { background: var(--hover); }
+  .entry-item.current {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .entry-item.current .entry-preview { color: inherit; opacity: .8; }
+  .entry-date {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    flex: 0 0 auto;
+    letter-spacing: -0.01em;
+  }
+  .entry-preview {
+    flex: 1;
+    font-size: 14px;
+    color: var(--fg-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-empty {
+    padding: 24px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
   }
 
   .editor-area { min-height: 60vh; }
@@ -284,23 +374,28 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: var(--muted);
+    color: var(--fg-soft);
     font-size: 13px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 4px var(--halo);
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 10px var(--halo-soft);
   }
 
   footer .right { display: flex; gap: 12px; align-items: center; }
   footer kbd {
     display: inline-block;
-    padding: 1px 6px;
-    background: var(--card-glass);
-    backdrop-filter: blur(6px);
-    border: 1px solid var(--border);
+    padding: 2px 7px;
+    background: var(--chip);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-strong);
     border-radius: 4px;
     font-size: 11px;
     font-family: ui-monospace, monospace;
     text-shadow: none;
+    color: var(--fg-soft);
   }
 
   ::-webkit-scrollbar { width: 8px; }
@@ -309,6 +404,7 @@
 </style>
 </head>
 <body x-data="journalApp" x-init="init()"
+      @keydown.escape.window="drawerOpen = false"
       @keydown.meta.p.prevent.window="mode = mode === 'edit' ? 'preview' : 'edit'"
       @keydown.ctrl.p.prevent.window="mode = mode === 'edit' ? 'preview' : 'edit'"
       @keydown.meta.s.prevent.window="save()"
@@ -318,6 +414,8 @@
 
   <header>
     <div class="date-nav">
+      <button class="nav-btn" :class="{ active: drawerOpen }"
+        @click="toggleDrawer()" title="Browse past entries">☰</button>
       <button class="nav-btn" @click="navDate(-1)" title="Previous day (←)">‹</button>
       <div class="date" x-text="formattedDate"></div>
       <button class="nav-btn" @click="navDate(1)" :disabled="isToday" title="Next day (→)">›</button>
@@ -343,6 +441,28 @@
         :title="'Background ' + Math.round(bgOpacity * 100) + '%'">
     </div>
   </header>
+
+  <div class="drawer" x-show="drawerOpen" x-transition.origin.top>
+    <div class="drawer-head">
+      <span>Past entries <span x-show="entries.length" x-text="'· ' + entries.length" style="opacity:.6;"></span></span>
+      <button class="drawer-close" @click="drawerOpen = false" title="Close (Esc)">×</button>
+    </div>
+    <template x-if="entries.length === 0">
+      <div class="entry-empty">No entries yet. This list grows as you write.</div>
+    </template>
+    <ul class="entry-list" x-show="entries.length > 0">
+      <template x-for="e in entries" :key="e.date">
+        <li
+          class="entry-item"
+          :class="{ current: e.date === date }"
+          @click="selectDate(e.date)"
+        >
+          <span class="entry-date" x-text="formatEntryDate(e.date)"></span>
+          <span class="entry-preview" x-text="e.preview || '(empty)'"></span>
+        </li>
+      </template>
+    </ul>
+  </div>
 
   <div class="editor-area">
     <textarea
@@ -380,6 +500,9 @@ document.addEventListener('alpine:init', () => {
     rendered: '',
     tick: 0,
 
+    drawerOpen: false,
+    entries: [],
+
     scale: parseFloat(localStorage.getItem('journalScale') || '1'),
     bgOpacity: parseFloat(localStorage.getItem('journalBgOpacity') || '0.4'),
     hasBackground: false,
@@ -416,8 +539,40 @@ document.addEventListener('alpine:init', () => {
       this.applyScale();
       await this.loadBackground();
       await this.load();
+      await this.loadEntries();
       setInterval(() => { this.tick++; }, 8000);
       this.$nextTick(() => this.$refs.editor?.focus());
+    },
+
+    async loadEntries() {
+      try {
+        const r = await fetch('/api/journal/entries');
+        const d = await r.json();
+        this.entries = d.entries || [];
+      } catch(e) { this.entries = []; }
+    },
+
+    async toggleDrawer() {
+      this.drawerOpen = !this.drawerOpen;
+      if (this.drawerOpen) await this.loadEntries();
+    },
+
+    async selectDate(d) {
+      if (d === this.date) { this.drawerOpen = false; return; }
+      await this.save();
+      this.date = d;
+      await this.load();
+      this.drawerOpen = false;
+      this.$nextTick(() => this.$refs.editor?.focus());
+    },
+
+    formatEntryDate(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const days = Math.round((today - d) / (24 * 3600 * 1000));
+      if (days === 0) return 'Today';
+      if (days === 1) return 'Yesterday';
+      return iso;
     },
 
     async load() {
@@ -439,6 +594,8 @@ document.addEventListener('alpine:init', () => {
       this.lastSavedAt = Date.now();
       this.saveStatus = 'saved';
       this.renderPreview();
+      // keep the drawer list fresh when the entry we're editing changes
+      this.loadEntries();
     },
 
     renderPreview() {

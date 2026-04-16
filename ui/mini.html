@@ -39,16 +39,18 @@
     --scale: 1;
     --bg-image: none;
     --bg-opacity: 0.4;
+    --chip: rgba(255, 255, 255, 0.94);
     --card-glass: rgba(255, 255, 255, 0.8);
     --halo: rgba(255, 255, 255, 0.92);
-    --halo-soft: rgba(255, 255, 255, 0.6);
+    --halo-soft: rgba(255, 255, 255, 0.8);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
+      --chip: rgba(20, 20, 20, 0.92);
       --card-glass: rgba(20, 20, 20, 0.75);
-      --halo: rgba(0, 0, 0, 0.9);
-      --halo-soft: rgba(0, 0, 0, 0.6);
+      --halo: rgba(0, 0, 0, 0.92);
+      --halo-soft: rgba(0, 0, 0, 0.8);
     }
   }
 
@@ -101,13 +103,20 @@
     font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    text-shadow: 0 0 4px var(--halo);
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 8px var(--halo-soft);
   }
   .count {
-    color: var(--muted);
+    color: var(--fg-soft, var(--fg));
     font-size: 11.5px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 3px var(--halo);
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo),
+      0 0 8px var(--halo-soft);
   }
 
   .right {
@@ -122,25 +131,29 @@
   .size-toggle button {
     min-width: 20px; height: 20px;
     padding: 0 4px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--muted);
+    border: 1px solid var(--border-strong);
+    background: var(--chip);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--fg-soft, var(--fg));
     border-radius: 4px;
     cursor: pointer;
     font-family: inherit;
     font-size: 10px;
+    font-weight: 500;
     line-height: 1;
     transition: all .1s;
   }
-  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
+  .size-toggle button:hover { color: var(--fg); }
 
   .opacity-slider {
     -webkit-appearance: none;
     appearance: none;
     width: 56px;
-    height: 3px;
-    background: var(--border-strong);
-    border-radius: 2px;
+    height: 5px;
+    background: var(--chip);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
     margin-left: 6px;

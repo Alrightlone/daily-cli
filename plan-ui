@@ -119,6 +119,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif u.path == "/api/journal/dates":
             dates = sorted([f.stem for f in JOURNAL_DIR.glob("*.md")], reverse=True)
             self._json({"dates": dates})
+        elif u.path == "/api/journal/entries":
+            entries = []
+            for f in sorted(JOURNAL_DIR.glob("*.md"), reverse=True):
+                preview = ""
+                for line in f.read_text(encoding="utf-8").splitlines():
+                    s = line.strip()
+                    # skip blank, heading, italic-wrapped prompt lines
+                    if not s or s.startswith("#") or s.startswith("*"):
+                        continue
+                    preview = s[:80] + ("…" if len(s) > 80 else "")
+                    break
+                entries.append({"date": f.stem, "preview": preview})
+            self._json({"entries": entries})
         elif u.path.startswith("/bg/"):
             self._serve_bg(u.path[4:])
         elif u.path == "/api/backgrounds":
