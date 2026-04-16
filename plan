@@ -5,10 +5,12 @@ import json
 import os
 import subprocess
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
-PLANS_DIR = Path(__file__).resolve().parent / "plans"
+SCRIPT_DIR = Path(__file__).resolve().parent
+PLANS_DIR = SCRIPT_DIR / "plans"
+RECUR_FILE = SCRIPT_DIR / "recurring.json"
 PLANS_DIR.mkdir(exist_ok=True)
 
 RESET = "\033[0m"
@@ -56,10 +58,120 @@ def get_task(plan, tid):
     return next((t for t in plan["tasks"] if t["id"] == tid), None)
 
 
+# ── Recurring task rules ─────────────────────────────────────
+DAY_NAMES = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
+
+def valid_schedule(s: str) -> bool:
+    s = s.lower().strip()
+    if s in ("daily", "weekday", "weekend"):
+        return True
+    parts = [p.strip() for p in s.split(",") if p.strip()]
+    return bool(parts) and all(p in DAY_NAMES for p in parts)
+
+
+def matches_schedule(schedule: str, d: date) -> bool:
+    s = schedule.lower().strip()
+    dow = d.weekday()
+    if s == "daily":
+        return True
+    if s == "weekday":
+        return dow < 5
+    if s == "weekend":
+        return dow >= 5
+    for part in s.split(","):
+        part = part.strip()
+        if part in DAY_NAMES and DAY_NAMES[part] == dow:
+            return True
+    return False
+
+
+def load_recurring():
+    if RECUR_FILE.exists():
+        return json.loads(RECUR_FILE.read_text())
+    return {"next_id": 1, "rules": []}
+
+
+def save_recurring(data):
+    RECUR_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+# ── Carry-over + recurring population for a fresh day ────────
+def initialize_today_if_new():
+    """On the first `plan` of a new day, populate today from yesterday's pending
+    tasks and any recurring rules that match. Idempotent after the file exists."""
+    p = plan_path()
+    if p.exists():
+        return
+
+    plan = {"date": today_str(), "tasks": []}
+
+    # 1. Carry over yesterday's pending tasks
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    y_path = plan_path(yesterday)
+    if y_path.exists():
+        y_plan = json.loads(y_path.read_text())
+        for t in y_plan["tasks"]:
+            if t["status"] == "pending":
+                plan["tasks"].append({
+                    "id": next_id(plan),
+                    "text": t["text"],
+                    "status": "pending",
+                    "note": None,
+                    "carried_from": yesterday,
+                })
+
+    # 2. Add matching recurring tasks (skip duplicates by text)
+    existing_texts = {t["text"] for t in plan["tasks"]}
+    rec = load_recurring()
+    for rule in rec.get("rules", []):
+        if matches_schedule(rule["schedule"], date.today()) and rule["text"] not in existing_texts:
+            plan["tasks"].append({
+                "id": next_id(plan),
+                "text": rule["text"],
+                "status": "pending",
+                "note": None,
+                "recurring": rule["schedule"],
+            })
+
+    if plan["tasks"]:
+        save_plan(plan)
+
+
+# ── Streak calculation ───────────────────────────────────────
+def compute_streak() -> int:
+    """Consecutive days ending today with at least 1 completed task.
+    Today counts only if it already has a done task."""
+    streak = 0
+    today = date.today()
+
+    def day_has_done(d):
+        p = plan_path(d.isoformat())
+        if not p.exists():
+            return None  # no file at all
+        data = json.loads(p.read_text())
+        return any(t["status"] == "done" for t in data["tasks"])
+
+    # Today: optional anchor
+    if day_has_done(today):
+        streak += 1
+
+    # Walk back from yesterday
+    d = today - timedelta(days=1)
+    while True:
+        state = day_has_done(d)
+        if state is None or state is False:
+            break
+        streak += 1
+        d -= timedelta(days=1)
+    return streak
+
+
 def show_plan(plan):
     tasks = plan["tasks"]
     d = plan["date"]
-    label = "Today" if d == today_str() else ""
+    is_today = (d == today_str())
+    label = "Today" if is_today else ""
     header = f"{BOLD}{CYAN}📅 {d}{RESET}"
     if label:
         header += f"  {DIM}· {label}{RESET}"
@@ -78,9 +190,15 @@ def show_plan(plan):
         text = t["text"]
         if t["status"] == "done":
             text = f"{DIM}{text}{RESET}"
+        tags = []
+        if t.get("carried_from"):
+            tags.append(f"{CYAN}↪{RESET}")
+        if t.get("recurring"):
+            tags.append(f"{CYAN}↻{RESET}")
+        tag_part = " " + "".join(tags) if tags else ""
         note = t.get("note")
         note_part = f"  {DIM}· {note}{RESET}" if note else ""
-        print(f"  {DIM}{t['id']:>2}{RESET}  {color}{icon}{RESET}  {text}{note_part}")
+        print(f"  {DIM}{t['id']:>2}{RESET}  {color}{icon}{RESET}  {text}{tag_part}{note_part}")
 
     counts = {"done": 0, "half": 0, "skip": 0, "pending": 0}
     for t in tasks:
@@ -93,9 +211,15 @@ def show_plan(plan):
         parts.append(f"{counts['skip']} skipped")
     if counts["pending"]:
         parts.append(f"{counts['pending']} pending")
+
     print()
     print(f"  {DIM}{'─' * 40}{RESET}")
     print(f"  {DIM}{' · '.join(parts)}{RESET}")
+
+    streak = compute_streak()
+    if streak > 0 and is_today:
+        flame = "🔥" if streak >= 3 else "·"
+        print(f"  {DIM}{flame} {streak}-day streak{RESET}")
     print()
 
 
@@ -207,6 +331,105 @@ def cmd_list(args):
     print()
 
 
+def cmd_recur(args):
+    """Manage recurring task rules."""
+    if not args or args[0] == "list":
+        rec = load_recurring()
+        if not rec["rules"]:
+            print(f"\n  {DIM}No recurring rules. Add one:{RESET}")
+            print(f'  {DIM}  plan recur add weekday "健身"{RESET}\n')
+            return
+        print()
+        print(f"  {BOLD}Recurring rules{RESET}")
+        print()
+        for r in rec["rules"]:
+            print(f"  {DIM}{r['id']:>2}{RESET}  {CYAN}{r['schedule']:<12}{RESET}  {r['text']}")
+        print()
+        print(f"  {DIM}Schedules: daily · weekday · weekend · mon,wed,fri (any combo){RESET}\n")
+        return
+
+    sub = args[0]
+    if sub == "add":
+        if len(args) < 3:
+            sys.exit('Usage: plan recur add <schedule> "text"')
+        schedule = args[1]
+        if not valid_schedule(schedule):
+            sys.exit("Invalid schedule. Use: daily | weekday | weekend | mon,wed,fri ...")
+        text = " ".join(args[2:])
+        rec = load_recurring()
+        rec["rules"].append({
+            "id": rec["next_id"],
+            "text": text,
+            "schedule": schedule.lower(),
+        })
+        rec["next_id"] += 1
+        save_recurring(rec)
+        cmd_recur(["list"])
+        return
+
+    if sub == "rm":
+        if len(args) < 2:
+            sys.exit("Usage: plan recur rm <id>")
+        try:
+            rid = int(args[1])
+        except ValueError:
+            sys.exit(f"Invalid id: {args[1]}")
+        rec = load_recurring()
+        before = len(rec["rules"])
+        rec["rules"] = [r for r in rec["rules"] if r["id"] != rid]
+        if len(rec["rules"]) == before:
+            sys.exit(f"No recurring rule with id {rid}")
+        save_recurring(rec)
+        cmd_recur(["list"])
+        return
+
+    sys.exit(f"Unknown subcommand: {sub}\nTry: plan recur [list | add | rm]")
+
+
+def cmd_week(args):
+    """Show the last 7 days at a glance."""
+    today = date.today()
+    print()
+    print(f"  {BOLD}Last 7 days{RESET}")
+    print()
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        p = plan_path(d.isoformat())
+        day_name = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d.weekday()]
+        date_str = d.strftime("%b %d")
+        marker = f"  {DIM}← today{RESET}" if d == today else ""
+        if p.exists():
+            data = json.loads(p.read_text())
+            n = len(data["tasks"])
+            done = sum(1 for t in data["tasks"] if t["status"] == "done")
+            half = sum(1 for t in data["tasks"] if t["status"] == "half")
+            skip = sum(1 for t in data["tasks"] if t["status"] == "skip")
+            pending = n - done - half - skip
+            width = 20
+            if n > 0:
+                bar = (
+                    f"{GREEN}{'█' * int(done / n * width)}{RESET}"
+                    f"{YELLOW}{'█' * int(half / n * width)}{RESET}"
+                    f"{RED}{'█' * int(skip / n * width)}{RESET}"
+                    f"{DIM}{'░' * (width - int(done / n * width) - int(half / n * width) - int(skip / n * width))}{RESET}"
+                )
+            else:
+                bar = f"{DIM}{'░' * width}{RESET}"
+            summary = f"{done}/{n}"
+            print(f"  {day_name} {date_str:>6}  {bar}  {DIM}{summary:>6}{RESET}{marker}")
+        else:
+            print(f"  {day_name} {date_str:>6}  {DIM}{'·' * 20}  {'—':>6}{RESET}{marker}")
+
+    streak = compute_streak()
+    print()
+    if streak > 0:
+        flame = "🔥" if streak >= 3 else "·"
+        print(f"  {DIM}{flame} {streak}-day streak{RESET}")
+    else:
+        print(f"  {DIM}No active streak — finish one task today to start one.{RESET}")
+    print()
+
+
 def cmd_help(args):
     print(f"""
 {BOLD}plan{RESET} — daily task planner saved locally
@@ -221,12 +444,20 @@ def cmd_help(args):
   plan edit                     Open today's plan in $EDITOR
   plan rm <id>                  Remove a task
   plan clear                    Clear all tasks for today {DIM}(asks to confirm){RESET}
+  plan week                     {CYAN}Last 7 days at a glance + streak{RESET}
   plan show <YYYY-MM-DD>        Show a past day's plan
   plan list                     List all saved dates
   plan help                     Show this help
 
+{BOLD}Recurring tasks:{RESET}
+  plan recur                    List recurring rules
+  plan recur add <sched> "text" Add a recurring task
+  plan recur rm <id>            Remove a rule
+  {DIM}schedules: daily · weekday · weekend · mon,wed,fri (any combo){RESET}
+
 {BOLD}Status:{RESET}
   {DIM}☐{RESET} pending   {GREEN}✓{RESET} done   {YELLOW}◐{RESET} half done   {RED}✗{RESET} skipped
+  {CYAN}↪{RESET} carried from yesterday   {CYAN}↻{RESET} recurring
   {DIM}(half and skip require a short reason){RESET}
 
 {BOLD}Visual UI:{RESET}
@@ -234,8 +465,14 @@ def cmd_help(args):
   plan-ui mini     {DIM}Compact widget for a desktop corner{RESET}
   plan-ui both     {DIM}Both windows open, synced live{RESET}
 
+{BOLD}Daily journal:{RESET}
+  journal                       {DIM}Write or open today's diary entry{RESET}
+  journal list                  {DIM}Browse past entries{RESET}
+
 {BOLD}Data:{RESET}
-  {DIM}Each day saved as JSON under  {PLANS_DIR}  (gitignored){RESET}
+  {DIM}Plans:   {PLANS_DIR}{RESET}
+  {DIM}Journal: {SCRIPT_DIR}/journal{RESET}
+  {DIM}(both gitignored — your notes stay private){RESET}
 """)
 
 
@@ -247,6 +484,8 @@ HANDLERS = {
     "rm":     cmd_rm,
     "clear":  cmd_clear,
     "edit":   cmd_edit,
+    "recur":  cmd_recur,
+    "week":   cmd_week,
     "show":   cmd_show,
     "list":   cmd_list,
     "help":   cmd_help,
@@ -257,6 +496,9 @@ HELP_ALIASES = {"-h", "--h", "-help", "--help", "-?", "/?"}
 
 def main():
     args = sys.argv[1:]
+    # Populate today's plan with carry-over + recurring on first call each day
+    initialize_today_if_new()
+
     if not args:
         show_plan(load_plan())
         return

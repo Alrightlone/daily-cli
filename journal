@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""journal — daily diary saved locally as markdown, one file per day."""
+
+import os
+import subprocess
+import sys
+from datetime import date, timedelta
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+JOURNAL_DIR = SCRIPT_DIR / "journal_entries"
+JOURNAL_DIR.mkdir(exist_ok=True)
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+CYAN = "\033[36m"
+
+
+def today_str():
+    return date.today().isoformat()
+
+
+def entry_path(d=None):
+    return JOURNAL_DIR / f"{d or today_str()}.md"
+
+
+def ensure_entry(d=None):
+    p = entry_path(d)
+    if not p.exists():
+        d = d or today_str()
+        p.write_text(
+            f"# {d}\n\n"
+            f"*What did you do today? What did you feel? What surprised you?*\n\n"
+        )
+    return p
+
+
+def cmd_open(d=None):
+    p = ensure_entry(d)
+    editor = os.environ.get("EDITOR", "nano")
+    subprocess.call([editor, str(p)])
+
+
+def cmd_show(args):
+    if not args:
+        sys.exit("Usage: journal show <YYYY-MM-DD>")
+    p = entry_path(args[0])
+    if not p.exists():
+        print(f"\n  {DIM}No entry for {args[0]}.{RESET}\n")
+        return
+    print()
+    print(p.read_text())
+    print()
+
+
+def cmd_list(args):
+    files = sorted(JOURNAL_DIR.glob("*.md"), reverse=True)
+    if not files:
+        print(f"\n  {DIM}No entries yet. Start one:  journal{RESET}\n")
+        return
+    print()
+    print(f"  {BOLD}Journal entries{RESET}")
+    print()
+    for f in files:
+        lines = f.read_text().strip().splitlines()
+        preview = ""
+        for line in lines[1:]:
+            s = line.strip()
+            if s and not s.startswith("*"):
+                preview = s[:70] + ("…" if len(s) > 70 else "")
+                break
+        preview_colored = f"  {DIM}{preview}{RESET}" if preview else f"  {DIM}(empty){RESET}"
+        print(f"  {CYAN}{f.stem}{RESET}{preview_colored}")
+    print()
+
+
+def cmd_help(args=None):
+    print(f"""
+{BOLD}journal{RESET} — daily diary in markdown
+
+{BOLD}Usage:{RESET}
+  journal                    Edit today's entry
+  journal yesterday          Edit yesterday's entry
+  journal <YYYY-MM-DD>       Edit a specific date's entry
+  journal show <date>        Print a past entry to the terminal
+  journal list               List all entries with previews
+  journal help               Show this help
+
+{BOLD}Data:{RESET}
+  {DIM}Each day saved as Markdown under  {JOURNAL_DIR}  (gitignored){RESET}
+""")
+
+
+HELP_ALIASES = {"-h", "--h", "-help", "--help", "-?", "/?"}
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        cmd_open()
+        return
+
+    first = args[0]
+
+    if first in HELP_ALIASES or first.lower() in ("help", "h"):
+        cmd_help()
+        return
+    if first.lower() == "yesterday":
+        yd = (date.today() - timedelta(days=1)).isoformat()
+        cmd_open(yd)
+        return
+    if first == "show":
+        cmd_show(args[1:])
+        return
+    if first == "list":
+        cmd_list(args[1:])
+        return
+    # Otherwise assume it's a date like YYYY-MM-DD
+    if len(first) == 10 and first[4] == "-" and first[7] == "-":
+        cmd_open(first)
+        return
+
+    print(f"Unknown command: {first}\n")
+    cmd_help()
+    sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

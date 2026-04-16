@@ -2,18 +2,19 @@
 
 > **English** | **[中文](README_CN.md)**
 
-Three minimal tools for your daily workflow:
+Four minimal tools for your daily workflow:
 
 - **`daily`** — open your morning routine websites in one command
-- **`plan`** — manage today's tasks from the terminal, saved locally
-- **`plan-ui`** — the same planner, as a clean desktop-like window
+- **`plan`** — task planner with carry-over, recurring rules, 7-day view, and streaks
+- **`plan-ui`** — the planner as a clean desktop-like window (full + mini widget)
+- **`journal`** — daily diary in markdown, one file per day
 
 ## Install
 
 ```bash
 git clone https://github.com/Alrightlone/daily-cli.git
 cd daily-cli
-chmod +x daily plan plan-ui
+chmod +x daily plan plan-ui journal
 
 # Add to PATH (zsh)
 echo 'export PATH="'$(pwd)':$PATH"' >> ~/.zshrc
@@ -65,19 +66,29 @@ Tasks have four states:
 ### Usage
 
 ```bash
-plan                       # Show today's plan
-plan add "write draft"     # Add a new task
-plan done 1                # Mark task 1 as done
-plan half 2                # Mark task 2 as half done (prompts for reason)
-plan skip 3                # Mark task 3 as not done (prompts for reason)
-plan edit 1 "new text"     # Rewrite task 1's text (fix typos)
-plan rm 4                  # Remove task 4
-plan clear                 # Remove all tasks for today (with confirmation)
-plan edit                  # Open today's plan in $EDITOR (raw JSON)
-plan show 2026-04-16       # Show a past day's plan
-plan list                  # List all saved dates
-plan help                  # Show help
+plan                             # Show today's plan
+plan add "write draft"           # Add a new task
+plan done 1                      # Mark task 1 as done
+plan half 2                      # Mark task 2 as half done (prompts for reason)
+plan skip 3                      # Mark task 3 as not done (prompts for reason)
+plan edit 1 "new text"           # Rewrite task 1's text (fix typos)
+plan rm 4                        # Remove task 4
+plan clear                       # Remove all tasks for today (with confirmation)
+plan week                        # Last 7 days at a glance + streak
+plan recur add weekday "gym"     # Auto-add "gym" every weekday
+plan recur list                  # List recurring rules
+plan recur rm <id>               # Remove a recurring rule
+plan edit                        # Open today's plan in $EDITOR (raw JSON)
+plan show 2026-04-16             # Show a past day's plan
+plan list                        # List all saved dates
+plan help                        # Show help
 ```
+
+**Automatic behaviors** (first `plan` each day):
+
+- **Carry-over**: unfinished pending tasks from yesterday are brought into today, marked with `↪`
+- **Recurring**: any matching rule (`daily` / `weekday` / `weekend` / `mon,wed,fri`) adds its task, marked with `↻`
+- **Streak**: consecutive days with ≥ 1 completed task are counted and shown in the footer
 
 ### Example
 
@@ -123,11 +134,26 @@ Close the window to stop the server, or hit `Ctrl+C` in the terminal.
 
 ---
 
+## `journal` — daily diary
+
+```bash
+journal                       # Edit today's entry in $EDITOR
+journal yesterday             # Edit yesterday's entry
+journal 2026-04-16            # Edit a specific date's entry
+journal show 2026-04-16       # Print a past entry to the terminal
+journal list                  # List all entries with a one-line preview
+journal help                  # Show help
+```
+
+Each day is saved as a separate markdown file under `journal_entries/`
+(gitignored). Fresh entries start with a prompt — replace it and write
+whatever's on your mind. Uses `$EDITOR` (falls back to `nano`).
+
 ## Requirements
 
 - macOS
 - Google Chrome (for `daily` and `plan-ui`)
-- Python 3 (for `plan` and `plan-ui`, pre-installed on macOS)
+- Python 3 (for `plan`, `plan-ui`, `journal` — pre-installed on macOS)
 - zsh (default shell on macOS)
 - Internet connection on first UI load (Alpine.js loaded via CDN)
 

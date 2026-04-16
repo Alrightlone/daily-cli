@@ -1,4 +1,6 @@
 plans/
+journal_entries/
+recurring.json
 __pycache__/
 *.pyc
 .DS_Store

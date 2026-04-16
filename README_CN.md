@@ -2,18 +2,19 @@
 
 > **[English](README.md)** | **中文**
 
-三个极简工具，搭配你的每日工作流：
+四个极简工具，搭配你的每日工作流：
 
 - **`daily`** —— 一条命令打开每天要看的网站
-- **`plan`** —— 终端里管理今日计划，本地保存
-- **`plan-ui`** —— 同一个计划器，以简洁的桌面应用形式打开
+- **`plan`** —— 任务计划器，支持递延、周期任务、周视图、连续打卡
+- **`plan-ui`** —— 同一个计划器的桌面应用窗口（大窗 + 迷你挂件）
+- **`journal`** —— 每日日记，一天一个 markdown 文件
 
 ## 安装
 
 ```bash
 git clone https://github.com/Alrightlone/daily-cli.git
 cd daily-cli
-chmod +x daily plan plan-ui
+chmod +x daily plan plan-ui journal
 
 # 添加到 PATH（zsh）
 echo 'export PATH="'$(pwd)':$PATH"' >> ~/.zshrc
@@ -65,19 +66,29 @@ daily help         # 显示帮助
 ### 使用
 
 ```bash
-plan                       # 查看今日计划
-plan add "写论文草稿"       # 添加任务
-plan done 1                # 标记任务 1 为已完成
-plan half 2                # 标记任务 2 为半完成（会提示输入原因）
-plan skip 3                # 标记任务 3 为未完成（会提示输入原因）
-plan edit 1 "新的内容"      # 改写任务 1 的文字（修正笔误）
-plan rm 4                  # 删除任务 4
-plan clear                 # 清空今日全部任务（会二次确认）
-plan edit                  # 用 $EDITOR 打开今日计划（JSON 源文件）
-plan show 2026-04-16       # 查看历史某天的计划
-plan list                  # 列出所有保存过的日期
-plan help                  # 显示帮助
+plan                             # 查看今日计划
+plan add "写论文草稿"             # 添加任务
+plan done 1                      # 标记任务 1 为已完成
+plan half 2                      # 标记任务 2 为半完成（会提示输入原因）
+plan skip 3                      # 标记任务 3 为未完成（会提示输入原因）
+plan edit 1 "新的内容"            # 改写任务 1 的文字（修正笔误）
+plan rm 4                        # 删除任务 4
+plan clear                       # 清空今日全部任务（会二次确认）
+plan week                        # 最近 7 天一览 + 连续打卡天数
+plan recur add weekday "健身"     # 每个工作日自动添加"健身"
+plan recur list                  # 查看所有重复任务规则
+plan recur rm <id>               # 删除一条规则
+plan edit                        # 用 $EDITOR 打开今日计划（JSON 源文件）
+plan show 2026-04-16             # 查看历史某天的计划
+plan list                        # 列出所有保存过的日期
+plan help                        # 显示帮助
 ```
+
+**每日自动行为**（当天第一次运行 `plan` 时）：
+
+- **递延**：昨天的未完成任务（pending）会自动带入今天，标记 `↪`
+- **周期**：当天匹配的 `recurring` 规则会自动生成任务，标记 `↻`
+- **连击**：连续有任务完成的天数显示在底部
 
 ### 示例
 
@@ -122,11 +133,26 @@ Mini 窗口是个紧凑的挂件，拖到桌面角落，随时低头一眼就能
 
 ---
 
+## `journal` —— 每日日记
+
+```bash
+journal                       # 编辑今天的日记
+journal yesterday             # 编辑昨天的日记
+journal 2026-04-16            # 编辑指定日期的日记
+journal show 2026-04-16       # 把某天的日记打印到终端
+journal list                  # 列出所有日记，每条附一行预览
+journal help                  # 显示帮助
+```
+
+每天一个 markdown 文件，保存在 `journal_entries/`（已 gitignore，不上传）。
+新日记会预填一个小提示问题，直接改掉写你自己的就好。使用 `$EDITOR` 环境
+变量指定的编辑器（默认 `nano`）。
+
 ## 环境要求
 
 - macOS
 - Google Chrome（`daily` 和 `plan-ui` 需要）
-- Python 3（`plan` 和 `plan-ui` 需要，macOS 自带）
+- Python 3（`plan` / `plan-ui` / `journal` 都需要，macOS 自带）
 - zsh（macOS 默认 shell）
 - 首次打开 UI 需要联网（通过 CDN 加载 Alpine.js）
 
