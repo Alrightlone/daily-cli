@@ -39,11 +39,14 @@
     }
   }
 
-  :root { --scale: 1; }
+  :root {
+    --scale: 1;
+    --bg-image: none;
+    --bg-opacity: 0.18;
+  }
 
   html, body {
     height: 100%;
-    background: var(--bg);
     color: var(--fg);
     font-family: ui-serif, "New York", "Iowan Old Style",
                  "Palatino Linotype", Palatino, Georgia, serif;
@@ -52,6 +55,22 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  html { background: var(--bg); }
+  html::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--bg-opacity);
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  body { position: relative; z-index: 1; background: transparent; }
 
   body {
     display: flex;
@@ -90,9 +109,10 @@
     margin-left: 12px;
   }
   .size-toggle button {
-    width: 26px; height: 26px;
+    min-width: 26px; height: 26px;
+    padding: 0 6px;
     border: 1px solid var(--border);
-    background: transparent;
+    background: var(--card);
     color: var(--muted);
     border-radius: 6px;
     cursor: pointer;
@@ -361,8 +381,11 @@
     <div style="display: flex; align-items: center;">
       <div class="date-chip" x-text="plan.date"></div>
       <div class="size-toggle">
-        <button @click="setScale(-1)" title="Smaller">A−</button>
-        <button @click="setScale(1)" title="Larger">A+</button>
+        <button @click="setScale(-1)" title="Smaller font">A−</button>
+        <button @click="setScale(1)" title="Larger font">A+</button>
+        <button @click="cycleBgOpacity()"
+          :title="'Background ' + Math.round(bgOpacity*100) + '%'"
+          x-show="hasBackground">◐</button>
       </div>
     </div>
   </header>
@@ -484,6 +507,8 @@ document.addEventListener('alpine:init', () => {
     editTask: null,
 
     scale: parseFloat(localStorage.getItem('planScale') || '1'),
+    bgOpacity: parseFloat(localStorage.getItem('planBgOpacity') || '0.18'),
+    hasBackground: false,
 
     get heading() {
       if (!this.plan.date) return 'plan';
@@ -514,6 +539,21 @@ document.addEventListener('alpine:init', () => {
       const r = await fetch('/api/plan');
       this.plan = await r.json();
       this.applyScale();
+      if (!this.hasBackground) await this.loadBackground();
+    },
+
+    async loadBackground() {
+      try {
+        const r = await fetch('/api/backgrounds');
+        const d = await r.json();
+        if (d.images && d.images.length > 0) {
+          document.documentElement.style.setProperty(
+            '--bg-image', `url('/bg/${encodeURIComponent(d.images[0])}')`
+          );
+          this.hasBackground = true;
+          this.applyBgOpacity();
+        }
+      } catch(e) {}
     },
 
     applyScale() {
@@ -525,6 +565,18 @@ document.addEventListener('alpine:init', () => {
       this.scale = Math.round(next * 10) / 10;
       localStorage.setItem('planScale', this.scale);
       this.applyScale();
+    },
+
+    applyBgOpacity() {
+      document.documentElement.style.setProperty('--bg-opacity', this.bgOpacity);
+    },
+
+    cycleBgOpacity() {
+      const steps = [0, 0.08, 0.18, 0.32];
+      const i = steps.findIndex(v => Math.abs(v - this.bgOpacity) < 0.01);
+      this.bgOpacity = steps[(i + 1) % steps.length];
+      localStorage.setItem('planBgOpacity', this.bgOpacity);
+      this.applyBgOpacity();
     },
 
     async addTask() {

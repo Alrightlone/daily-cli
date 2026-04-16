@@ -35,11 +35,14 @@
     }
   }
 
-  :root { --scale: 1; }
+  :root {
+    --scale: 1;
+    --bg-image: none;
+    --bg-opacity: 0.22;
+  }
 
   html, body {
     height: 100%;
-    background: var(--bg);
     color: var(--fg);
     font-family: ui-serif, "New York", "Iowan Old Style",
                  "Palatino Linotype", Palatino, Georgia, serif;
@@ -48,6 +51,22 @@
     -webkit-font-smoothing: antialiased;
     -webkit-app-region: drag;  /* whole window draggable */
   }
+
+  html { background: var(--bg); }
+  html::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--bg-opacity);
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  body { position: relative; z-index: 1; background: transparent; }
 
   /* interactive elements must opt out so clicks work */
   input, button, .task { -webkit-app-region: no-drag; }
@@ -86,15 +105,15 @@
     gap: 2px;
   }
   .size-toggle button {
-    width: 20px; height: 20px;
+    min-width: 20px; height: 20px;
+    padding: 0 4px;
     border: 1px solid var(--border);
-    background: transparent;
+    background: var(--card);
     color: var(--muted);
     border-radius: 4px;
     cursor: pointer;
     font-family: inherit;
     font-size: 10px;
-    padding: 0;
     line-height: 1;
     transition: all .1s;
   }
@@ -301,8 +320,11 @@
     <div class="right">
       <div class="count" x-text="counter"></div>
       <div class="size-toggle">
-        <button @click="setScale(-1)" title="Smaller">A−</button>
-        <button @click="setScale(1)" title="Larger">A+</button>
+        <button @click="setScale(-1)" title="Smaller font">A−</button>
+        <button @click="setScale(1)" title="Larger font">A+</button>
+        <button @click="cycleBgOpacity()"
+          :title="'Background ' + Math.round(bgOpacity*100) + '%'"
+          x-show="hasBackground">◐</button>
       </div>
     </div>
   </header>
@@ -376,6 +398,8 @@ document.addEventListener('alpine:init', () => {
     noteStatus: '',
 
     scale: parseFloat(localStorage.getItem('miniScale') || '1'),
+    bgOpacity: parseFloat(localStorage.getItem('miniBgOpacity') || '0.22'),
+    hasBackground: false,
 
     get counter() {
       const t = this.plan.tasks;
@@ -405,6 +429,21 @@ document.addEventListener('alpine:init', () => {
       const r = await fetch('/api/plan');
       this.plan = await r.json();
       this.applyScale();
+      if (!this.hasBackground) await this.loadBackground();
+    },
+
+    async loadBackground() {
+      try {
+        const r = await fetch('/api/backgrounds');
+        const d = await r.json();
+        if (d.images && d.images.length > 0) {
+          document.documentElement.style.setProperty(
+            '--bg-image', `url('/bg/${encodeURIComponent(d.images[0])}')`
+          );
+          this.hasBackground = true;
+          this.applyBgOpacity();
+        }
+      } catch(e) {}
     },
 
     applyScale() {
@@ -416,6 +455,18 @@ document.addEventListener('alpine:init', () => {
       this.scale = Math.round(next * 10) / 10;
       localStorage.setItem('miniScale', this.scale);
       this.applyScale();
+    },
+
+    applyBgOpacity() {
+      document.documentElement.style.setProperty('--bg-opacity', this.bgOpacity);
+    },
+
+    cycleBgOpacity() {
+      const steps = [0, 0.12, 0.22, 0.38];
+      const i = steps.findIndex(v => Math.abs(v - this.bgOpacity) < 0.01);
+      this.bgOpacity = steps[(i + 1) % steps.length];
+      localStorage.setItem('miniBgOpacity', this.bgOpacity);
+      this.applyBgOpacity();
     },
 
     async addTask() {
