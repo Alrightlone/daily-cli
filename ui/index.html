@@ -42,7 +42,7 @@
   :root {
     --scale: 1;
     --bg-image: none;
-    --bg-opacity: 0.18;
+    --bg-opacity: 0.08;
     --card-glass: rgba(255, 255, 255, 0.78);
     --card-rgb: 255, 255, 255;
   }
@@ -528,7 +528,7 @@ document.addEventListener('alpine:init', () => {
     editTask: null,
 
     scale: parseFloat(localStorage.getItem('planScale') || '1'),
-    bgOpacity: parseFloat(localStorage.getItem('planBgOpacity') || '0.18'),
+    bgOpacity: parseFloat(localStorage.getItem('planBgOpacity') || '0.08'),
     hasBackground: false,
 
     get heading() {
@@ -593,7 +593,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     cycleBgOpacity() {
-      const steps = [0, 0.08, 0.18, 0.32];
+      const steps = [0, 0.04, 0.08, 0.15, 0.28];
       const i = steps.findIndex(v => Math.abs(v - this.bgOpacity) < 0.01);
       this.bgOpacity = steps[(i + 1) % steps.length];
       localStorage.setItem('planBgOpacity', this.bgOpacity);
