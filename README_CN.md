@@ -135,18 +135,28 @@ Mini 窗口是个紧凑的挂件，拖到桌面角落，随时低头一眼就能
 
 ## `journal` —— 每日日记
 
+默认弹出一个简洁的写作窗口。支持 markdown、实时预览切换、自动保存、
+左右切换日期，写起来舒服。
+
 ```bash
-journal                       # 编辑今天的日记
-journal yesterday             # 编辑昨天的日记
-journal 2026-04-16            # 编辑指定日期的日记
-journal show 2026-04-16       # 把某天的日记打印到终端
-journal list                  # 列出所有日记，每条附一行预览
+journal                       # 打开今天的日记（UI 窗口）
+journal yesterday             # 打开昨天的日记
+journal 2026-04-16            # 打开指定日期
+
+journal show 2026-04-16       # 终端：打印某天的日记
+journal list                  # 终端：列出所有日记
 journal help                  # 显示帮助
 ```
 
+### UI 特性
+
+- **Write / Preview 切换** —— 点击切换按钮，或按 `⌘P` / `Ctrl+P`
+- **自动保存** —— 停笔 500ms 后自动存盘，不用手动保存
+- **翻日记** —— 顶部 `‹` / `›` 箭头跳到前一天 / 后一天；`⌘S` / `Ctrl+S` 强制保存
+- **Markdown** —— 标题、粗体、斜体、列表、引用、代码块、链接，Preview 里完整渲染
+- **无干扰设计** —— 衬线字体、宽行距、极简界面，专注写作
+
 每天一个 markdown 文件，保存在 `journal_entries/`（已 gitignore，不上传）。
-新日记会预填一个小提示问题，直接改掉写你自己的就好。使用 `$EDITOR` 环境
-变量指定的编辑器（默认 `nano`）。
 
 ## 环境要求
 

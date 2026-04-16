@@ -14,8 +14,10 @@ from urllib.parse import parse_qs, urlparse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PLANS_DIR = SCRIPT_DIR / "plans"
+JOURNAL_DIR = SCRIPT_DIR / "journal_entries"
 UI_DIR = SCRIPT_DIR / "ui"
 PLANS_DIR.mkdir(exist_ok=True)
+JOURNAL_DIR.mkdir(exist_ok=True)
 
 
 def today_str():
@@ -41,6 +43,21 @@ def save_plan(plan):
 
 def next_id(plan):
     return max((t["id"] for t in plan["tasks"]), default=0) + 1
+
+
+def journal_path(d=None):
+    return JOURNAL_DIR / f"{d or today_str()}.md"
+
+
+def load_journal(d=None):
+    p = journal_path(d)
+    if p.exists():
+        return p.read_text(encoding="utf-8")
+    return ""
+
+
+def save_journal(d, content):
+    journal_path(d).write_text(content, encoding="utf-8")
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -94,6 +111,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._html((UI_DIR / "index.html").read_text(encoding="utf-8"))
         elif u.path == "/mini":
             self._html((UI_DIR / "mini.html").read_text(encoding="utf-8"))
+        elif u.path == "/journal":
+            self._html((UI_DIR / "journal.html").read_text(encoding="utf-8"))
+        elif u.path == "/api/journal":
+            d = parse_qs(u.query).get("date", [None])[0]
+            self._json({"date": d or today_str(), "content": load_journal(d)})
+        elif u.path == "/api/journal/dates":
+            dates = sorted([f.stem for f in JOURNAL_DIR.glob("*.md")], reverse=True)
+            self._json({"dates": dates})
         elif u.path.startswith("/bg/"):
             self._serve_bg(u.path[4:])
         elif u.path == "/api/backgrounds":
@@ -112,6 +137,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json({"dates": dates})
         else:
             self.send_error(404)
+
+    def do_PUT(self):
+        u = urlparse(self.path)
+        if u.path == "/api/journal":
+            body = self._body()
+            d = (body.get("date") or today_str()).strip()
+            content = body.get("content", "")
+            if not isinstance(content, str):
+                return self.send_error(400)
+            # guard: YYYY-MM-DD only
+            if len(d) != 10 or d[4] != "-" or d[7] != "-":
+                return self.send_error(400)
+            save_journal(d, content)
+            return self._json({"ok": True, "date": d})
+        self.send_error(404)
 
     def do_POST(self):
         if urlparse(self.path).path == "/api/tasks":
@@ -213,11 +253,12 @@ class ReusableServer(socketserver.TCPServer):
     allow_reuse_address = True
 
 
-def launch(port, mode):
+def launch(port, mode, date_arg=None):
     base = f"http://127.0.0.1:{port}"
     mini_size = (300, 460)
     mini_pos = (1580, 80)
     full_size = (720, 800)
+    journal_size = (760, 820)
     if mode == "mini":
         open_in_chrome_app(f"{base}/mini", size=mini_size, position=mini_pos, profile="mini")
     elif mode == "both":
@@ -225,6 +266,11 @@ def launch(port, mode):
         threading.Timer(0.4, lambda: open_in_chrome_app(
             f"{base}/mini", size=mini_size, position=mini_pos, profile="mini"
         )).start()
+    elif mode == "journal":
+        url = f"{base}/journal"
+        if date_arg:
+            url += f"?date={date_arg}"
+        open_in_chrome_app(url, size=journal_size, profile="journal")
     else:
         open_in_chrome_app(f"{base}/", size=full_size, profile="full")
 
@@ -232,23 +278,32 @@ def launch(port, mode):
 def main():
     args = sys.argv[1:]
     mode = "full"
+    date_arg = None
     if args:
         a = args[0].lstrip("-")
         if a in ("mini", "m"):
             mode = "mini"
         elif a in ("both", "b", "all"):
             mode = "both"
+        elif a in ("journal", "j"):
+            mode = "journal"
+            # optional second arg: YYYY-MM-DD
+            if len(args) > 1:
+                d = args[1]
+                if len(d) == 10 and d[4] == "-" and d[7] == "-":
+                    date_arg = d
         elif a in ("help", "h"):
-            print("\nUsage:  plan-ui [mini | both]\n")
+            print("\nUsage:  plan-ui [mini | both | journal]\n")
             print("  plan-ui          full desktop-style window")
             print("  plan-ui mini     compact widget for desktop corner")
-            print("  plan-ui both     both windows on one server (live sync)\n")
+            print("  plan-ui both     both windows on one server (live sync)")
+            print("  plan-ui journal [YYYY-MM-DD]   journal editor window\n")
             return
 
     port = free_port()
     print(f"\n  plan-ui ({mode})  →  http://127.0.0.1:{port}")
     print(f"  Ctrl+C to stop\n")
-    threading.Timer(0.3, lambda: launch(port, mode)).start()
+    threading.Timer(0.3, lambda: launch(port, mode, date_arg)).start()
     with ReusableServer(("127.0.0.1", port), Handler) as httpd:
         try:
             httpd.serve_forever()

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>journal</title>
+<script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/marked@12.0.2/marked.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --scale: 1;
+    --bg-image: none;
+    --bg-opacity: 0.4;
+
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --fg: #0a0a0a;
+    --fg-soft: #3f3f46;
+    --muted: #a1a1aa;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --hover: #f4f4f5;
+    --accent: #18181b;
+
+    --card-glass: rgba(255, 255, 255, 0.78);
+    --halo: rgba(255, 255, 255, 0.92);
+    --halo-soft: rgba(255, 255, 255, 0.6);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --card: #141414;
+      --fg: #fafafa;
+      --fg-soft: #d4d4d8;
+      --muted: #71717a;
+      --border: #262626;
+      --border-strong: #3f3f46;
+      --hover: #1c1c1c;
+      --accent: #fafafa;
+      --card-glass: rgba(20, 20, 20, 0.72);
+      --halo: rgba(0, 0, 0, 0.9);
+      --halo-soft: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  html, body {
+    height: 100%;
+    color: var(--fg);
+    font-family: ui-serif, "New York", "Iowan Old Style",
+                 "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html { background: var(--bg); }
+  html::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--bg-opacity);
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  body { position: relative; z-index: 1; background: transparent; }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 48px;
+    zoom: var(--scale);
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    background: var(--card-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--muted);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all .1s;
+  }
+  .nav-btn:hover:not(:disabled) {
+    color: var(--fg);
+    border-color: var(--border-strong);
+  }
+  .nav-btn:disabled { opacity: .3; cursor: default; }
+
+  .date {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 6px var(--halo-soft);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-group {
+    display: flex;
+    background: var(--card-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 2px;
+  }
+  .toggle {
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all .1s;
+  }
+  .toggle:hover { color: var(--fg); }
+  .toggle.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .size-toggle {
+    display: flex;
+    gap: 4px;
+  }
+  .size-toggle button {
+    min-width: 26px; height: 26px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    background: var(--card-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--muted);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all .1s;
+  }
+  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
+
+  .opacity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 70px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--fg-soft);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 0 0 1px var(--border-strong);
+  }
+
+  .editor-area { min-height: 60vh; }
+
+  textarea.editor {
+    display: block;
+    width: 100%;
+    min-height: 60vh;
+    border: none;
+    background: transparent;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1.8;
+    resize: none;
+    outline: none;
+    padding: 0;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo-soft);
+  }
+  textarea.editor::placeholder {
+    color: var(--muted);
+    font-style: italic;
+    opacity: .8;
+  }
+
+  .preview {
+    min-height: 60vh;
+    color: var(--fg);
+    font-size: 17px;
+    line-height: 1.8;
+    text-shadow:
+      0 0 2px var(--halo),
+      0 0 5px var(--halo-soft);
+  }
+  .preview h1 { font-size: 28px; margin: 24px 0 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .preview h2 { font-size: 22px; margin: 22px 0 12px; font-weight: 600; letter-spacing: -0.01em; }
+  .preview h3 { font-size: 18px; margin: 18px 0 10px; font-weight: 600; }
+  .preview h1:first-child, .preview h2:first-child, .preview h3:first-child { margin-top: 0; }
+  .preview p { margin: 14px 0; }
+  .preview ul, .preview ol { margin: 14px 0; padding-left: 26px; }
+  .preview li { margin: 6px 0; }
+  .preview li::marker { color: var(--muted); }
+  .preview blockquote {
+    border-left: 3px solid var(--border-strong);
+    padding-left: 16px;
+    margin: 18px 0;
+    color: var(--fg-soft);
+    font-style: italic;
+  }
+  .preview code {
+    background: var(--card-glass);
+    backdrop-filter: blur(4px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    text-shadow: none;
+  }
+  .preview pre {
+    background: var(--card-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 14px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .preview pre code {
+    background: transparent;
+    padding: 0;
+    backdrop-filter: none;
+  }
+  .preview hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .preview a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .preview strong { font-weight: 700; }
+  .preview em { font-style: italic; }
+  .preview img { max-width: 100%; border-radius: 6px; }
+
+  footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 4px var(--halo);
+  }
+
+  footer .right { display: flex; gap: 12px; align-items: center; }
+  footer kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--card-glass);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    text-shadow: none;
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+</style>
+</head>
+<body x-data="journalApp" x-init="init()"
+      @keydown.meta.p.prevent.window="mode = mode === 'edit' ? 'preview' : 'edit'"
+      @keydown.ctrl.p.prevent.window="mode = mode === 'edit' ? 'preview' : 'edit'"
+      @keydown.meta.s.prevent.window="save()"
+      @keydown.ctrl.s.prevent.window="save()">
+
+<div class="app">
+
+  <header>
+    <div class="date-nav">
+      <button class="nav-btn" @click="navDate(-1)" title="Previous day (←)">‹</button>
+      <div class="date" x-text="formattedDate"></div>
+      <button class="nav-btn" @click="navDate(1)" :disabled="isToday" title="Next day (→)">›</button>
+    </div>
+
+    <div class="actions">
+      <div class="toggle-group">
+        <button class="toggle" :class="{ active: mode === 'edit' }" @click="mode = 'edit'">Write</button>
+        <button class="toggle" :class="{ active: mode === 'preview' }" @click="mode = 'preview'">Preview</button>
+      </div>
+
+      <div class="size-toggle">
+        <button @click="setScale(-1)" title="Smaller font">A−</button>
+        <button @click="setScale(1)" title="Larger font">A+</button>
+      </div>
+
+      <input
+        x-show="hasBackground"
+        type="range" min="0" max="100" step="1"
+        class="opacity-slider"
+        :value="Math.round(bgOpacity * 100)"
+        @input="setBgOpacity($event.target.value / 100)"
+        :title="'Background ' + Math.round(bgOpacity * 100) + '%'">
+    </div>
+  </header>
+
+  <div class="editor-area">
+    <textarea
+      class="editor"
+      x-show="mode === 'edit'"
+      x-ref="editor"
+      x-model="content"
+      @input.debounce.500ms="save()"
+      @keydown.arrow-left.window="if (!focusedInEditor() && !$event.target.tagName.match(/TEXTAREA|INPUT/)) navDate(-1)"
+      @keydown.arrow-right.window="if (!focusedInEditor() && !$event.target.tagName.match(/TEXTAREA|INPUT/)) navDate(1)"
+      placeholder="What's on your mind today?&#10;&#10;Markdown works: # heading, **bold**, *italic*, - bullet, > quote, `code`, [link](url)…"
+    ></textarea>
+
+    <div class="preview" x-show="mode === 'preview'" x-html="rendered"></div>
+  </div>
+
+  <footer>
+    <div x-text="statusText"></div>
+    <div class="right">
+      <span>markdown</span>
+      <span><kbd>⌘P</kbd> preview</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('journalApp', () => ({
+    date: '',
+    content: '',
+    mode: 'edit',
+    saveStatus: 'saved',
+    lastSavedAt: null,
+    rendered: '',
+    tick: 0,
+
+    scale: parseFloat(localStorage.getItem('journalScale') || '1'),
+    bgOpacity: parseFloat(localStorage.getItem('journalBgOpacity') || '0.4'),
+    hasBackground: false,
+
+    get formattedDate() {
+      if (!this.date) return '';
+      const d = new Date(this.date + 'T00:00:00');
+      return d.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
+      });
+    },
+
+    get isToday() {
+      return this.date === new Date().toISOString().slice(0, 10);
+    },
+
+    get statusText() {
+      this.tick;  // make reactive on the ticker
+      if (this.saveStatus === 'saving') return 'Saving…';
+      if (!this.lastSavedAt) return '';
+      const secs = Math.floor((Date.now() - this.lastSavedAt) / 1000);
+      if (secs < 3) return 'Saved';
+      if (secs < 60) return `Saved ${secs}s ago`;
+      return `Saved ${Math.floor(secs / 60)}m ago`;
+    },
+
+    focusedInEditor() {
+      return document.activeElement && document.activeElement.tagName === 'TEXTAREA';
+    },
+
+    async init() {
+      const params = new URLSearchParams(location.search);
+      this.date = params.get('date') || new Date().toISOString().slice(0, 10);
+      this.applyScale();
+      await this.loadBackground();
+      await this.load();
+      setInterval(() => { this.tick++; }, 8000);
+      this.$nextTick(() => this.$refs.editor?.focus());
+    },
+
+    async load() {
+      const r = await fetch(`/api/journal?date=${this.date}`);
+      const d = await r.json();
+      this.content = d.content || '';
+      this.renderPreview();
+      this.saveStatus = 'saved';
+      this.lastSavedAt = this.content ? Date.now() : null;
+    },
+
+    async save() {
+      this.saveStatus = 'saving';
+      await fetch('/api/journal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: this.date, content: this.content }),
+      });
+      this.lastSavedAt = Date.now();
+      this.saveStatus = 'saved';
+      this.renderPreview();
+    },
+
+    renderPreview() {
+      if (!this.content.trim()) {
+        this.rendered = '<p style="color: var(--muted); font-style: italic;">Nothing written yet.</p>';
+        return;
+      }
+      this.rendered = marked.parse(this.content, { breaks: true });
+    },
+
+    async navDate(dir) {
+      await this.save();
+      const d = new Date(this.date + 'T00:00:00');
+      d.setDate(d.getDate() + dir);
+      const newDate = d.toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      if (newDate > today) return;
+      this.date = newDate;
+      await this.load();
+      this.$nextTick(() => this.$refs.editor?.focus());
+    },
+
+    async loadBackground() {
+      try {
+        const r = await fetch('/api/backgrounds');
+        const d = await r.json();
+        if (d.images && d.images.length > 0) {
+          document.documentElement.style.setProperty(
+            '--bg-image', `url('/bg/${encodeURIComponent(d.images[0])}')`
+          );
+          this.hasBackground = true;
+          this.applyBgOpacity();
+        }
+      } catch(e) {}
+    },
+
+    applyScale() { document.documentElement.style.setProperty('--scale', this.scale); },
+    setScale(dir) {
+      const next = Math.min(1.4, Math.max(0.8, this.scale + dir * 0.1));
+      this.scale = Math.round(next * 10) / 10;
+      localStorage.setItem('journalScale', this.scale);
+      this.applyScale();
+    },
+
+    applyBgOpacity() { document.documentElement.style.setProperty('--bg-opacity', this.bgOpacity); },
+    setBgOpacity(v) {
+      this.bgOpacity = Math.max(0, Math.min(1, Number(v)));
+      localStorage.setItem('journalBgOpacity', this.bgOpacity);
+      this.applyBgOpacity();
+    },
+  }));
+});
+</script>
+</body>
+</html>

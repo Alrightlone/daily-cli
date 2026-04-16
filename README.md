@@ -136,18 +136,29 @@ Close the window to stop the server, or hit `Ctrl+C` in the terminal.
 
 ## `journal` — daily diary
 
+Opens a clean writing UI window by default. Supports markdown with a live
+preview toggle, auto-save, and arrow keys to flip between days.
+
 ```bash
-journal                       # Edit today's entry in $EDITOR
-journal yesterday             # Edit yesterday's entry
-journal 2026-04-16            # Edit a specific date's entry
-journal show 2026-04-16       # Print a past entry to the terminal
-journal list                  # List all entries with a one-line preview
+journal                       # Open today's entry in the UI
+journal yesterday             # Open yesterday's entry
+journal 2026-04-16            # Open a specific date
+
+journal show 2026-04-16       # Terminal: print a past entry
+journal list                  # Terminal: list all entries with previews
 journal help                  # Show help
 ```
 
+### UI features
+
+- **Write / Preview toggle** — click the toggle or press `⌘P` / `Ctrl+P`
+- **Auto-save** — every change is saved 500ms after you stop typing
+- **Day navigation** — `‹` / `›` buttons in the header, or press `⌘S` / `Ctrl+S` to force save
+- **Markdown** — headings, bold, italics, lists, quotes, code blocks, links — all render in preview
+- **Distraction-free** — large serif font, generous line-height, minimal chrome
+
 Each day is saved as a separate markdown file under `journal_entries/`
-(gitignored). Fresh entries start with a prompt — replace it and write
-whatever's on your mind. Uses `$EDITOR` (falls back to `nano`).
+(gitignored), so your words never leave the machine.
 
 ## Requirements
 

@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""journal — daily diary saved locally as markdown, one file per day."""
+"""journal — daily diary saved locally as markdown.
+
+By default, opens a clean writing UI window (via plan-ui). Terminal-only
+subcommands are still available for quick listing and viewing.
+"""
 
 import os
-import subprocess
 import sys
 from datetime import date, timedelta
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 JOURNAL_DIR = SCRIPT_DIR / "journal_entries"
+PLAN_UI = SCRIPT_DIR / "plan-ui"
 JOURNAL_DIR.mkdir(exist_ok=True)
 
 RESET = "\033[0m"
@@ -25,21 +29,13 @@ def entry_path(d=None):
     return JOURNAL_DIR / f"{d or today_str()}.md"
 
 
-def ensure_entry(d=None):
-    p = entry_path(d)
-    if not p.exists():
-        d = d or today_str()
-        p.write_text(
-            f"# {d}\n\n"
-            f"*What did you do today? What did you feel? What surprised you?*\n\n"
-        )
-    return p
-
-
-def cmd_open(d=None):
-    p = ensure_entry(d)
-    editor = os.environ.get("EDITOR", "nano")
-    subprocess.call([editor, str(p)])
+def open_ui(date_arg=None):
+    """Launch the journal UI via plan-ui. Exec so Ctrl+C in this terminal
+    cleanly stops the server once you're done writing."""
+    args = [str(PLAN_UI), "journal"]
+    if date_arg:
+        args.append(date_arg)
+    os.execvp(str(PLAN_UI), args)
 
 
 def cmd_show(args):
@@ -65,11 +61,13 @@ def cmd_list(args):
     for f in files:
         lines = f.read_text().strip().splitlines()
         preview = ""
-        for line in lines[1:]:
+        for line in lines:
             s = line.strip()
-            if s and not s.startswith("*"):
-                preview = s[:70] + ("…" if len(s) > 70 else "")
-                break
+            # Skip blank lines, headings, and italic-wrapped prompts.
+            if not s or s.startswith("#") or s.startswith("*"):
+                continue
+            preview = s[:70] + ("…" if len(s) > 70 else "")
+            break
         preview_colored = f"  {DIM}{preview}{RESET}" if preview else f"  {DIM}(empty){RESET}"
         print(f"  {CYAN}{f.stem}{RESET}{preview_colored}")
     print()
@@ -80,12 +78,19 @@ def cmd_help(args=None):
 {BOLD}journal{RESET} — daily diary in markdown
 
 {BOLD}Usage:{RESET}
-  journal                    Edit today's entry
-  journal yesterday          Edit yesterday's entry
-  journal <YYYY-MM-DD>       Edit a specific date's entry
+  journal                    Open today's entry in the writing UI
+  journal yesterday          Open yesterday's entry in the UI
+  journal <YYYY-MM-DD>       Open a specific date in the UI
+
+{BOLD}Terminal-only:{RESET}
   journal show <date>        Print a past entry to the terminal
   journal list               List all entries with previews
   journal help               Show this help
+
+{BOLD}UI shortcuts (once the window is open):{RESET}
+  {DIM}‹ / ›            Previous / next day{RESET}
+  {DIM}⌘P or Ctrl+P     Toggle Write ↔ Preview{RESET}
+  {DIM}⌘S or Ctrl+S     Force save (auto-save is on){RESET}
 
 {BOLD}Data:{RESET}
   {DIM}Each day saved as Markdown under  {JOURNAL_DIR}  (gitignored){RESET}
@@ -95,10 +100,14 @@ def cmd_help(args=None):
 HELP_ALIASES = {"-h", "--h", "-help", "--help", "-?", "/?"}
 
 
+def is_date(s):
+    return len(s) == 10 and s[4] == "-" and s[7] == "-" and s[:4].isdigit()
+
+
 def main():
     args = sys.argv[1:]
     if not args:
-        cmd_open()
+        open_ui()
         return
 
     first = args[0]
@@ -108,7 +117,7 @@ def main():
         return
     if first.lower() == "yesterday":
         yd = (date.today() - timedelta(days=1)).isoformat()
-        cmd_open(yd)
+        open_ui(yd)
         return
     if first == "show":
         cmd_show(args[1:])
@@ -116,9 +125,8 @@ def main():
     if first == "list":
         cmd_list(args[1:])
         return
-    # Otherwise assume it's a date like YYYY-MM-DD
-    if len(first) == 10 and first[4] == "-" and first[7] == "-":
-        cmd_open(first)
+    if is_date(first):
+        open_ui(first)
         return
 
     print(f"Unknown command: {first}\n")
