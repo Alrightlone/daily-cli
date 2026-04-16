@@ -1,0 +1,100 @@
+#!/bin/zsh
+
+# daily — open your morning routine websites from the terminal
+# Usage: daily [category...]
+# Categories: social, scholar, papers, ai, all
+
+BROWSER="Google Chrome"
+
+# ── Open a group of URLs ─────────────────────────────────────
+open_social() {
+  echo "  [Social]"
+  open -a "$BROWSER" "https://x.com"               && echo "    ✓ X"
+  open -a "$BROWSER" "https://www.linkedin.com/feed/" && echo "    ✓ LinkedIn"
+  open -a "$BROWSER" "https://github.com"           && echo "    ✓ GitHub"
+}
+
+open_scholar() {
+  echo "  [Scholar]"
+  open -a "$BROWSER" "https://scholar.google.com/"        && echo "    ✓ Google Scholar"
+  open -a "$BROWSER" "https://www.semanticscholar.org/"   && echo "    ✓ Semantic Scholar"
+}
+
+open_papers() {
+  echo "  [Papers]"
+  open -a "$BROWSER" "https://huggingface.co/papers" && echo "    ✓ HuggingFace Daily Papers"
+}
+
+open_ai() {
+  echo "  [AI]"
+  open -a "$BROWSER" "https://chat.openai.com" && echo "    ✓ ChatGPT"
+  open -a "$BROWSER" "https://claude.ai"       && echo "    ✓ Claude"
+  open -a "$BROWSER" "https://gemini.google.com" && echo "    ✓ Gemini"
+}
+
+# ── List all URLs ────────────────────────────────────────────
+list_all() {
+  echo "Social:"
+  printf "  %-28s %s\n" "X"        "https://x.com"
+  printf "  %-28s %s\n" "LinkedIn" "https://www.linkedin.com/feed/"
+  printf "  %-28s %s\n" "GitHub"   "https://github.com"
+  echo "Scholar:"
+  printf "  %-28s %s\n" "Google Scholar"   "https://scholar.google.com/"
+  printf "  %-28s %s\n" "Semantic Scholar" "https://www.semanticscholar.org/"
+  echo "Papers:"
+  printf "  %-28s %s\n" "HuggingFace Daily Papers" "https://huggingface.co/papers"
+  echo "AI:"
+  printf "  %-28s %s\n" "ChatGPT" "https://chat.openai.com"
+  printf "  %-28s %s\n" "Claude"  "https://claude.ai"
+  printf "  %-28s %s\n" "Gemini"  "https://gemini.google.com"
+}
+
+# ── Help ─────────────────────────────────────────────────────
+show_help() {
+  cat <<'HELP'
+daily — open your morning routine websites
+
+Usage:
+  daily              open everything
+  daily <category>   open a specific group (can combine multiple)
+  daily list         show all URLs without opening
+  daily help         show this message
+
+Categories:
+  social    X, LinkedIn, GitHub
+  scholar   Google Scholar, Semantic Scholar
+  papers    HuggingFace Daily Papers
+  ai        ChatGPT, Claude, Gemini
+  all       everything (default)
+HELP
+}
+
+# ── Main ─────────────────────────────────────────────────────
+if [[ $# -eq 0 ]]; then
+  set -- all
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    all)
+      echo "Opening everything..."
+      open_social
+      open_scholar
+      open_papers
+      open_ai
+      ;;
+    social)  open_social ;;
+    scholar) open_scholar ;;
+    papers)  open_papers ;;
+    ai)      open_ai ;;
+    list)    list_all ;;
+    help|-h|--help) show_help ;;
+    *)
+      echo "Unknown category: $arg"
+      echo "Run 'daily help' for usage."
+      exit 1
+      ;;
+  esac
+done
+
+echo "Done."
