@@ -38,7 +38,7 @@
   :root {
     --scale: 1;
     --bg-image: none;
-    --bg-opacity: 0.1;
+    --bg-opacity: 0.4;
     --card-glass: rgba(255, 255, 255, 0.8);
   }
 
@@ -452,7 +452,7 @@ document.addEventListener('alpine:init', () => {
     noteStatus: '',
 
     scale: parseFloat(localStorage.getItem('miniScale') || '1'),
-    bgOpacity: parseFloat(localStorage.getItem('miniBgOpacity') || '0.1'),
+    bgOpacity: parseFloat(localStorage.getItem('miniBgOpacity') || '0.4'),
     hasBackground: false,
 
     get counter() {

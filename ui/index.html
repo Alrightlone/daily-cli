@@ -42,7 +42,7 @@
   :root {
     --scale: 1;
     --bg-image: none;
-    --bg-opacity: 0.08;
+    --bg-opacity: 0.4;
     --card-glass: rgba(255, 255, 255, 0.78);
     --card-rgb: 255, 255, 255;
   }
@@ -558,7 +558,7 @@ document.addEventListener('alpine:init', () => {
     editTask: null,
 
     scale: parseFloat(localStorage.getItem('planScale') || '1'),
-    bgOpacity: parseFloat(localStorage.getItem('planBgOpacity') || '0.08'),
+    bgOpacity: parseFloat(localStorage.getItem('planBgOpacity') || '0.4'),
     hasBackground: false,
 
     get heading() {
