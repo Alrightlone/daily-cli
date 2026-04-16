@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plan · mini</title>
+<script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --fg: #0a0a0a;
+    --muted: #a1a1aa;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --hover: #f4f4f5;
+    --accent: #18181b;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --card: #141414;
+      --fg: #fafafa;
+      --muted: #71717a;
+      --border: #262626;
+      --border-strong: #3f3f46;
+      --hover: #1c1c1c;
+      --accent: #fafafa;
+    }
+  }
+
+  :root { --scale: 1; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-serif, "New York", "Iowan Old Style",
+                 "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: calc(13px * var(--scale));
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -webkit-app-region: drag;  /* whole window draggable */
+  }
+
+  /* interactive elements must opt out so clicks work */
+  input, button, .task { -webkit-app-region: no-drag; }
+
+  body {
+    padding: 14px 14px 12px;
+    overflow-y: auto;
+    user-select: none;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 4px;
+    margin-bottom: 10px;
+  }
+  .title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .count {
+    color: var(--muted);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .size-toggle {
+    display: flex;
+    gap: 2px;
+  }
+  .size-toggle button {
+    width: 20px; height: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 10px;
+    padding: 0;
+    line-height: 1;
+    transition: all .1s;
+  }
+  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
+
+  .bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 12px;
+  }
+  .bar span { height: 100%; transition: width .3s; }
+  .bar .bd { background: var(--green); }
+  .bar .bh { background: var(--amber); }
+  .bar .bs { background: var(--red); }
+
+  .add {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .add input {
+    width: 100%;
+    padding: 8px 10px 8px 26px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--fg);
+    font: inherit;
+    font-size: 13px;
+    transition: border-color .15s;
+  }
+  .add input:focus { outline: none; border-color: var(--border-strong); }
+  .add::before {
+    content: "+";
+    position: absolute;
+    left: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  .list { display: flex; flex-direction: column; gap: 1px; }
+
+  .task {
+    display: grid;
+    grid-template-columns: 22px 1fr 20px;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    transition: background .1s;
+  }
+  .task:hover { background: var(--hover); }
+
+  .circle-wrap { position: relative; padding-top: 2px; }
+  .circle {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    color: transparent;
+    transition: all .15s;
+    padding: 0;
+  }
+  .circle:hover { border-color: var(--fg); }
+  .circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .circle.half { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .circle.skip { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .popover {
+    position: absolute;
+    top: 22px; left: -6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    display: flex;
+    gap: 1px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    z-index: 10;
+  }
+  .popover button {
+    width: 26px; height: 26px;
+    border: none; background: transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: background .1s;
+  }
+  .popover button:hover { background: var(--hover); }
+  .popover .p-none { color: var(--muted); }
+  .popover .p-done { color: var(--green); }
+  .popover .p-half { color: var(--amber); }
+  .popover .p-skip { color: var(--red); }
+
+  .text {
+    color: var(--fg);
+    font-size: 13px;
+    word-wrap: break-word;
+    padding-top: 1px;
+  }
+  .task.done .text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .note {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 1px;
+  }
+
+  .rm {
+    width: 18px; height: 18px;
+    border: none; background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity .1s, background .1s;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+  .task:hover .rm { opacity: 1; }
+  .rm:hover { background: var(--hover); color: var(--red); }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 20px 0;
+    font-size: 12px;
+  }
+
+  /* Mini modal — tight */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    width: 100%;
+    max-width: 280px;
+  }
+  .modal h2 { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+  .modal textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    font-size: 12px;
+    resize: none;
+    min-height: 60px;
+  }
+  .modal textarea:focus { outline: none; border-color: var(--border-strong); }
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 6px;
+    margin-top: 10px;
+  }
+  .btn {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary {
+    background: var(--accent); color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body x-data="miniApp" x-init="load(); setInterval(load, 5000)"
+      @keydown.escape.window="closeAll()">
+
+  <header>
+    <div class="title">Today</div>
+    <div class="right">
+      <div class="count" x-text="counter"></div>
+      <div class="size-toggle">
+        <button @click="setScale(-1)" title="Smaller">A−</button>
+        <button @click="setScale(1)" title="Larger">A+</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bar" x-show="plan.tasks.length > 0">
+    <span class="bd" :style="`width:${pct.done}%`"></span>
+    <span class="bh" :style="`width:${pct.half}%`"></span>
+    <span class="bs" :style="`width:${pct.skip}%`"></span>
+  </div>
+
+  <form class="add" @submit.prevent="addTask()">
+    <input type="text" placeholder="Add a task..." x-model="newText" autofocus>
+  </form>
+
+  <div class="list" x-show="plan.tasks.length > 0">
+    <template x-for="task in plan.tasks" :key="task.id">
+      <div class="task" :class="{ done: task.status === 'done' }">
+
+        <div class="circle-wrap" @click.outside="if (openId === task.id) openId = null">
+          <button class="circle" :class="task.status"
+                  @click="openId = openId === task.id ? null : task.id">
+            <span x-text="icon(task.status)"></span>
+          </button>
+          <div class="popover" x-show="openId === task.id" x-transition.opacity>
+            <button class="p-none" @click="setStatus(task,'pending')" title="Pending">○</button>
+            <button class="p-done" @click="setStatus(task,'done')" title="Done">✓</button>
+            <button class="p-half" @click="setStatus(task,'half')" title="Half">◐</button>
+            <button class="p-skip" @click="setStatus(task,'skip')" title="Skip">✗</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="text" x-text="task.text"></div>
+          <template x-if="task.note">
+            <div class="note" x-text="task.note"></div>
+          </template>
+        </div>
+
+        <button class="rm" @click="remove(task)" title="Delete">×</button>
+      </div>
+    </template>
+  </div>
+
+  <div class="empty" x-show="plan.tasks.length === 0">
+    Nothing planned yet.
+  </div>
+
+<!-- Note modal -->
+<div class="modal-bg" x-show="noteModal" @click.self="noteModal = false" x-transition.opacity>
+  <div class="modal" @click.stop>
+    <h2 x-text="noteTitle"></h2>
+    <textarea x-ref="noteField" x-model="noteText" placeholder="Reason..."
+      @keydown.meta.enter="saveNote()" @keydown.ctrl.enter="saveNote()"></textarea>
+    <div class="modal-actions">
+      <button class="btn" @click="noteModal = false">Cancel</button>
+      <button class="btn primary" @click="saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('miniApp', () => ({
+    plan: { date: '', tasks: [] },
+    newText: '',
+    openId: null,
+
+    noteModal: false,
+    noteText: '',
+    noteTask: null,
+    noteStatus: '',
+
+    scale: parseFloat(localStorage.getItem('miniScale') || '1'),
+
+    get counter() {
+      const t = this.plan.tasks;
+      if (!t.length) return '';
+      const d = t.filter(x => x.status === 'done').length;
+      return `${d} / ${t.length}`;
+    },
+
+    get pct() {
+      const t = this.plan.tasks;
+      if (!t.length) return { done: 0, half: 0, skip: 0 };
+      const n = t.length;
+      return {
+        done: 100 * t.filter(x => x.status === 'done').length / n,
+        half: 100 * t.filter(x => x.status === 'half').length / n,
+        skip: 100 * t.filter(x => x.status === 'skip').length / n,
+      };
+    },
+
+    get noteTitle() {
+      return this.noteStatus === 'half' ? 'Why half?' : 'Why not done?';
+    },
+
+    icon(s) { return { pending: '', done: '✓', half: '◐', skip: '✗' }[s]; },
+
+    async load() {
+      const r = await fetch('/api/plan');
+      this.plan = await r.json();
+      this.applyScale();
+    },
+
+    applyScale() {
+      document.documentElement.style.setProperty('--scale', this.scale);
+    },
+
+    setScale(dir) {
+      const next = Math.min(1.5, Math.max(0.85, this.scale + dir * 0.1));
+      this.scale = Math.round(next * 10) / 10;
+      localStorage.setItem('miniScale', this.scale);
+      this.applyScale();
+    },
+
+    async addTask() {
+      const text = this.newText.trim();
+      if (!text) return;
+      const r = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      this.plan = await r.json();
+      this.newText = '';
+    },
+
+    async setStatus(task, status) {
+      this.openId = null;
+      if (status === 'half' || status === 'skip') {
+        this.noteTask = task;
+        this.noteStatus = status;
+        this.noteText = task.note || '';
+        this.noteModal = true;
+        this.$nextTick(() => this.$refs.noteField?.focus());
+        return;
+      }
+      await this.patch(task.id, { status });
+    },
+
+    async saveNote() {
+      await this.patch(this.noteTask.id, {
+        status: this.noteStatus,
+        note: this.noteText,
+      });
+      this.noteModal = false;
+    },
+
+    async patch(id, data) {
+      const r = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      this.plan = await r.json();
+    },
+
+    async remove(task) {
+      const r = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+      this.plan = await r.json();
+    },
+
+    closeAll() {
+      this.noteModal = false;
+      this.openId = null;
+    },
+  }));
+});
+</script>
+</body>
+</html>

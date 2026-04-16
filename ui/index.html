@@ -39,13 +39,15 @@
     }
   }
 
+  :root { --scale: 1; }
+
   html, body {
     height: 100%;
     background: var(--bg);
     color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
-                 "Helvetica Neue", system-ui, sans-serif;
-    font-size: 16px;
+    font-family: ui-serif, "New York", "Iowan Old Style",
+                 "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: calc(16px * var(--scale));
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -81,6 +83,24 @@
     font-size: 14px;
     font-variant-numeric: tabular-nums;
   }
+
+  .size-toggle {
+    display: flex;
+    gap: 4px;
+    margin-left: 12px;
+  }
+  .size-toggle button {
+    width: 26px; height: 26px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all .1s;
+  }
+  .size-toggle button:hover { color: var(--fg); border-color: var(--border-strong); }
 
   .add {
     position: relative;
@@ -333,12 +353,18 @@
   ::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
-<body x-data="planApp" x-init="load()" @keydown.escape.window="closeAll()">
+<body x-data="planApp" x-init="load(); setInterval(load, 5000)" @keydown.escape.window="closeAll()">
 <div class="app">
 
   <header>
     <h1 x-text="heading"></h1>
-    <div class="date-chip" x-text="plan.date"></div>
+    <div style="display: flex; align-items: center;">
+      <div class="date-chip" x-text="plan.date"></div>
+      <div class="size-toggle">
+        <button @click="setScale(-1)" title="Smaller">A−</button>
+        <button @click="setScale(1)" title="Larger">A+</button>
+      </div>
+    </div>
   </header>
 
   <form class="add" @submit.prevent="addTask()">
@@ -457,6 +483,8 @@ document.addEventListener('alpine:init', () => {
     editText: '',
     editTask: null,
 
+    scale: parseFloat(localStorage.getItem('planScale') || '1'),
+
     get heading() {
       if (!this.plan.date) return 'plan';
       const today = new Date().toISOString().slice(0, 10);
@@ -485,6 +513,18 @@ document.addEventListener('alpine:init', () => {
     async load() {
       const r = await fetch('/api/plan');
       this.plan = await r.json();
+      this.applyScale();
+    },
+
+    applyScale() {
+      document.documentElement.style.setProperty('--scale', this.scale);
+    },
+
+    setScale(dir) {
+      const next = Math.min(1.4, Math.max(0.8, this.scale + dir * 0.1));
+      this.scale = Math.round(next * 10) / 10;
+      localStorage.setItem('planScale', this.scale);
+      this.applyScale();
     },
 
     async addTask() {

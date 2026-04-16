@@ -98,18 +98,26 @@ plan help                  # Show help
 ## `plan-ui` — desktop-style window
 
 ```bash
-plan-ui
+plan-ui              # full window
+plan-ui mini         # compact widget, lives in a desktop corner
+plan-ui both         # both windows on one server (live sync between them)
 ```
 
 Launches a local server and opens the planner in a standalone Chrome window
 (no tabs, no URL bar — feels like a native app). All changes sync with the same
-`plans/*.json` files, so `plan` and `plan-ui` edit the same data.
+`plans/*.json` files, so `plan`, `plan-ui`, and `plan-ui mini` all edit the same
+data.
 
 **Features**
 - Click the status circle to pick ✓ done / ◐ half / ✗ skipped (modal asks for reason)
 - Hover a task to edit or delete
+- `A−` / `A+` buttons to adjust font size (remembered per window)
 - Auto dark mode based on system preference
+- Windows auto-refresh every 5s, so edits made elsewhere sync live
 - Press `Esc` to close any modal or popover
+
+The mini window is a compact widget you can park in a corner of your desktop
+for at-a-glance reminders. Drag it by the background (not tasks or inputs).
 
 Close the window to stop the server, or hit `Ctrl+C` in the terminal.
 
