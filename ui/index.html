@@ -43,6 +43,15 @@
     --scale: 1;
     --bg-image: none;
     --bg-opacity: 0.18;
+    --card-glass: rgba(255, 255, 255, 0.78);
+    --card-rgb: 255, 255, 255;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --card-glass: rgba(20, 20, 20, 0.72);
+      --card-rgb: 20, 20, 20;
+    }
   }
 
   html, body {
@@ -50,7 +59,7 @@
     color: var(--fg);
     font-family: ui-serif, "New York", "Iowan Old Style",
                  "Palatino Linotype", Palatino, Georgia, serif;
-    font-size: calc(16px * var(--scale));
+    font-size: 16px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -82,6 +91,7 @@
   .app {
     width: 100%;
     max-width: 760px;
+    zoom: var(--scale);
   }
 
   header {
@@ -132,7 +142,9 @@
     padding: 16px 18px 16px 44px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--card);
+    background: var(--card-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     color: var(--fg);
     font: inherit;
     font-size: 16px;
@@ -165,7 +177,11 @@
     border-radius: 8px;
     transition: background .15s;
   }
-  .task:hover { background: var(--hover); }
+  .task:hover {
+    background: var(--card-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 
   .circle-wrap { position: relative; padding-top: 3px; }
 
@@ -173,7 +189,9 @@
     width: 24px; height: 24px;
     border: 1.5px solid var(--border-strong);
     border-radius: 50%;
-    background: transparent;
+    background: var(--card-glass);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -183,6 +201,7 @@
     color: transparent;
     transition: all .15s;
     padding: 0;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04);
   }
   .circle:hover { border-color: var(--fg-soft); }
   .circle.done { background: var(--green); border-color: var(--green); color: #fff; }
@@ -192,7 +211,9 @@
   .popover {
     position: absolute;
     top: 34px; left: -8px;
-    background: var(--card);
+    background: var(--card-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 4px;

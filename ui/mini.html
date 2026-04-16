@@ -39,6 +39,13 @@
     --scale: 1;
     --bg-image: none;
     --bg-opacity: 0.22;
+    --card-glass: rgba(255, 255, 255, 0.8);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --card-glass: rgba(20, 20, 20, 0.75);
+    }
   }
 
   html, body {
@@ -46,7 +53,7 @@
     color: var(--fg);
     font-family: ui-serif, "New York", "Iowan Old Style",
                  "Palatino Linotype", Palatino, Georgia, serif;
-    font-size: calc(13px * var(--scale));
+    font-size: 13px;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     -webkit-app-region: drag;  /* whole window draggable */
@@ -76,6 +83,8 @@
     overflow-y: auto;
     user-select: none;
   }
+
+  .content { zoom: var(--scale); }
 
   header {
     display: flex;
@@ -141,7 +150,9 @@
     padding: 8px 10px 8px 26px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--card);
+    background: var(--card-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: var(--fg);
     font: inherit;
     font-size: 13px;
@@ -169,20 +180,27 @@
     border-radius: 6px;
     transition: background .1s;
   }
-  .task:hover { background: var(--hover); }
+  .task:hover {
+    background: var(--card-glass);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
 
   .circle-wrap { position: relative; padding-top: 2px; }
   .circle {
     width: 16px; height: 16px;
     border: 1.5px solid var(--border-strong);
     border-radius: 50%;
-    background: transparent;
+    background: var(--card-glass);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 700;
     color: transparent;
     transition: all .15s;
     padding: 0;
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.05);
   }
   .circle:hover { border-color: var(--fg); }
   .circle.done { background: var(--green); border-color: var(--green); color: #fff; }
@@ -192,7 +210,9 @@
   .popover {
     position: absolute;
     top: 22px; left: -6px;
-    background: var(--card);
+    background: var(--card-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 3px;
@@ -315,6 +335,8 @@
 <body x-data="miniApp" x-init="load(); setInterval(load, 5000)"
       @keydown.escape.window="closeAll()">
 
+<div class="content">
+
   <header>
     <div class="title">Today</div>
     <div class="right">
@@ -371,6 +393,8 @@
   <div class="empty" x-show="plan.tasks.length === 0">
     Nothing planned yet.
   </div>
+
+</div>
 
 <!-- Note modal -->
 <div class="modal-bg" x-show="noteModal" @click.self="noteModal = false" x-transition.opacity>
