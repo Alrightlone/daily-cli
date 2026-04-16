@@ -212,18 +212,30 @@ def cmd_help(args):
 {BOLD}plan{RESET} — daily task planner saved locally
 
 {BOLD}Usage:{RESET}
-  plan                       Show today's plan
-  plan add "text"            Add a new task
-  plan done <id>             Mark task as done
-  plan half <id>             Mark as half done (asks for reason)
-  plan skip <id>             Mark as not done (asks for reason)
-  plan rm <id>               Remove a task
-  plan clear                 Remove all tasks for today (asks to confirm)
-  plan edit <id> "new text"  Rewrite a task's text
-  plan edit                  Open today's plan in $EDITOR
-  plan show <YYYY-MM-DD>     Show a past day's plan
-  plan list                  List all saved dates
-  plan help                  Show this help
+  plan                          Show today's plan
+  plan add "text"               Add a new task
+  plan done <id>                Mark task as done
+  plan half <id>                Mark as half done {DIM}(asks for reason){RESET}
+  plan skip <id>                Mark as not done {DIM}(asks for reason){RESET}
+  plan edit <id> "new text"     Rewrite a task's text {DIM}(fix typos){RESET}
+  plan edit                     Open today's plan in $EDITOR
+  plan rm <id>                  Remove a task
+  plan clear                    Clear all tasks for today {DIM}(asks to confirm){RESET}
+  plan show <YYYY-MM-DD>        Show a past day's plan
+  plan list                     List all saved dates
+  plan help                     Show this help
+
+{BOLD}Status:{RESET}
+  {DIM}☐{RESET} pending   {GREEN}✓{RESET} done   {YELLOW}◐{RESET} half done   {RED}✗{RESET} skipped
+  {DIM}(half and skip require a short reason){RESET}
+
+{BOLD}Visual UI:{RESET}
+  plan-ui          {DIM}Full desktop-style window{RESET}
+  plan-ui mini     {DIM}Compact widget for a desktop corner{RESET}
+  plan-ui both     {DIM}Both windows open, synced live{RESET}
+
+{BOLD}Data:{RESET}
+  {DIM}Each day saved as JSON under  {PLANS_DIR}  (gitignored){RESET}
 """)
 
 
@@ -238,9 +250,9 @@ HANDLERS = {
     "show":   cmd_show,
     "list":   cmd_list,
     "help":   cmd_help,
-    "-h":     cmd_help,
-    "--help": cmd_help,
 }
+
+HELP_ALIASES = {"-h", "--h", "-help", "--help", "-?", "/?"}
 
 
 def main():
@@ -249,6 +261,9 @@ def main():
         show_plan(load_plan())
         return
     cmd, rest = args[0], args[1:]
+    if cmd in HELP_ALIASES:
+        cmd_help(rest)
+        return
     h = HANDLERS.get(cmd)
     if not h:
         print(f"Unknown command: {cmd}\n")
