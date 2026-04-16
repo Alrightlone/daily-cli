@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plan</title>
+<script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --fg: #0a0a0a;
+    --fg-soft: #3f3f46;
+    --muted: #a1a1aa;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --hover: #f4f4f5;
+    --accent: #18181b;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --card: #141414;
+      --fg: #fafafa;
+      --fg-soft: #d4d4d8;
+      --muted: #71717a;
+      --border: #262626;
+      --border-strong: #3f3f46;
+      --hover: #1c1c1c;
+      --accent: #fafafa;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+                 "Helvetica Neue", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 36px 20px 64px;
+    overflow-y: auto;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .date-chip {
+    color: var(--muted);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .add {
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .add input {
+    width: 100%;
+    padding: 16px 18px 16px 44px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--fg);
+    font: inherit;
+    font-size: 16px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .add input:focus {
+    outline: none;
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
+  }
+  .add::before {
+    content: "+";
+    position: absolute;
+    left: 18px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 20px;
+    font-weight: 300;
+    pointer-events: none;
+  }
+
+  .list { display: flex; flex-direction: column; gap: 2px; }
+
+  .task {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 10px;
+    border-radius: 8px;
+    transition: background .15s;
+  }
+  .task:hover { background: var(--hover); }
+
+  .circle-wrap { position: relative; padding-top: 3px; }
+
+  .circle {
+    width: 24px; height: 24px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: transparent;
+    transition: all .15s;
+    padding: 0;
+  }
+  .circle:hover { border-color: var(--fg-soft); }
+  .circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .circle.half { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .circle.skip { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .popover {
+    position: absolute;
+    top: 34px; left: -8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    gap: 2px;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+  .popover button {
+    width: 36px; height: 36px;
+    border: none; background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--fg-soft);
+    transition: background .1s;
+  }
+  .popover button:hover { background: var(--hover); }
+  .popover .p-none { color: var(--muted); }
+  .popover .p-done { color: var(--green); }
+  .popover .p-half { color: var(--amber); }
+  .popover .p-skip { color: var(--red); }
+
+  .body { min-width: 0; padding-top: 3px; }
+
+  .text {
+    color: var(--fg);
+    font-size: 16px;
+    word-wrap: break-word;
+  }
+  .task.done .text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .note {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .actions {
+    opacity: 0;
+    display: flex;
+    gap: 2px;
+    transition: opacity .15s;
+  }
+  .task:hover .actions, .task:focus-within .actions { opacity: 1; }
+
+  .icon-btn {
+    width: 30px; height: 30px;
+    border: none; background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    transition: background .1s, color .1s;
+    font-size: 13px;
+  }
+  .icon-btn:hover { background: var(--hover); color: var(--fg); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 56px 0;
+    font-size: 15px;
+  }
+
+  footer {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--muted);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot.done { background: var(--green); }
+  .dot.half { background: var(--amber); }
+  .dot.skip { background: var(--red); }
+  .dot.pending { background: var(--muted); opacity: .4; }
+
+  .link-btn {
+    background: none; border: none;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .link-btn:hover { color: var(--fg); background: var(--hover); }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 100;
+    animation: fadeIn .15s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow);
+    animation: slideUp .2s cubic-bezier(.2,.9,.3,1);
+  }
+  @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h2 {
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .modal .hint {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .modal textarea, .modal input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    font-size: 15px;
+    resize: vertical;
+  }
+  .modal textarea { min-height: 96px; }
+  .modal textarea:focus, .modal input:focus {
+    outline: none;
+    border-color: var(--border-strong);
+  }
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 14px;
+  }
+  .btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+  .btn.primary:hover { opacity: .9; }
+  .btn.danger { color: var(--red); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body x-data="planApp" x-init="load()" @keydown.escape.window="closeAll()">
+<div class="app">
+
+  <header>
+    <h1 x-text="heading"></h1>
+    <div class="date-chip" x-text="plan.date"></div>
+  </header>
+
+  <form class="add" @submit.prevent="addTask()">
+    <input
+      type="text"
+      placeholder="What needs to happen today?"
+      x-model="newText"
+      autofocus
+    >
+  </form>
+
+  <div class="list" x-show="plan.tasks.length > 0">
+    <template x-for="task in plan.tasks" :key="task.id">
+      <div class="task" :class="{ done: task.status === 'done' }">
+
+        <div class="circle-wrap" @click.outside="if (openId === task.id) openId = null">
+          <button
+            class="circle"
+            :class="task.status"
+            @click="openId = openId === task.id ? null : task.id"
+            :title="task.status"
+          ><span x-text="icon(task.status)"></span></button>
+
+          <div class="popover" x-show="openId === task.id" x-transition.opacity>
+            <button class="p-none" @click="setStatus(task, 'pending')" title="Pending">○</button>
+            <button class="p-done" @click="setStatus(task, 'done')" title="Done">✓</button>
+            <button class="p-half" @click="setStatus(task, 'half')" title="Half done">◐</button>
+            <button class="p-skip" @click="setStatus(task, 'skip')" title="Not done">✗</button>
+          </div>
+        </div>
+
+        <div class="body">
+          <div class="text" x-text="task.text"></div>
+          <template x-if="task.note">
+            <div class="note" x-text="task.note"></div>
+          </template>
+        </div>
+
+        <div class="actions">
+          <button class="icon-btn" @click="startEdit(task)" title="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          </button>
+          <button class="icon-btn" @click="remove(task)" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+          </button>
+        </div>
+
+      </div>
+    </template>
+  </div>
+
+  <div class="empty" x-show="plan.tasks.length === 0">
+    No tasks yet. Type above and press Enter.
+  </div>
+
+  <footer x-show="plan.tasks.length > 0">
+    <div class="progress">
+      <span class="dot done"></span>
+      <span x-text="summary"></span>
+    </div>
+    <button class="link-btn" @click="clearAll()">Clear all</button>
+  </footer>
+
+</div>
+
+<!-- Note modal -->
+<div class="modal-bg" x-show="noteModal" @click.self="noteModal = false" x-transition.opacity>
+  <div class="modal" @click.stop>
+    <h2 x-text="noteTitle"></h2>
+    <div class="hint">A short reason helps future-you understand the day.</div>
+    <textarea
+      x-ref="noteField"
+      x-model="noteText"
+      placeholder="What got in the way?"
+      @keydown.meta.enter="saveNote()"
+      @keydown.ctrl.enter="saveNote()"
+    ></textarea>
+    <div class="modal-actions">
+      <button class="btn" @click="noteModal = false">Cancel</button>
+      <button class="btn primary" @click="saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-bg" x-show="editModal" @click.self="editModal = false" x-transition.opacity>
+  <div class="modal" @click.stop>
+    <h2>Edit task</h2>
+    <div class="hint">Fix the wording, then save.</div>
+    <input
+      type="text"
+      x-ref="editField"
+      x-model="editText"
+      @keydown.enter="saveEdit()"
+    >
+    <div class="modal-actions">
+      <button class="btn" @click="editModal = false">Cancel</button>
+      <button class="btn primary" @click="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('planApp', () => ({
+    plan: { date: '', tasks: [] },
+    newText: '',
+    openId: null,
+
+    noteModal: false,
+    noteText: '',
+    noteTask: null,
+    noteStatus: '',
+
+    editModal: false,
+    editText: '',
+    editTask: null,
+
+    get heading() {
+      if (!this.plan.date) return 'plan';
+      const today = new Date().toISOString().slice(0, 10);
+      return this.plan.date === today ? 'Today' : this.plan.date;
+    },
+
+    get noteTitle() {
+      return this.noteStatus === 'half' ? 'Why only half done?' : 'Why not done?';
+    },
+
+    get summary() {
+      const t = this.plan.tasks;
+      if (!t.length) return '';
+      const c = { done: 0, half: 0, skip: 0, pending: 0 };
+      t.forEach(x => c[x.status]++);
+      const parts = [`${c.done} of ${t.length} done`];
+      if (c.half) parts.push(`${c.half} half`);
+      if (c.skip) parts.push(`${c.skip} skipped`);
+      return parts.join(' · ');
+    },
+
+    icon(s) {
+      return { pending: '', done: '✓', half: '◐', skip: '✗' }[s];
+    },
+
+    async load() {
+      const r = await fetch('/api/plan');
+      this.plan = await r.json();
+    },
+
+    async addTask() {
+      const text = this.newText.trim();
+      if (!text) return;
+      const r = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      this.plan = await r.json();
+      this.newText = '';
+    },
+
+    async setStatus(task, status) {
+      this.openId = null;
+      if (status === 'half' || status === 'skip') {
+        this.noteTask = task;
+        this.noteStatus = status;
+        this.noteText = task.note || '';
+        this.noteModal = true;
+        this.$nextTick(() => this.$refs.noteField?.focus());
+        return;
+      }
+      await this.patch(task.id, { status });
+    },
+
+    async saveNote() {
+      await this.patch(this.noteTask.id, {
+        status: this.noteStatus,
+        note: this.noteText,
+      });
+      this.noteModal = false;
+    },
+
+    startEdit(task) {
+      this.editTask = task;
+      this.editText = task.text;
+      this.editModal = true;
+      this.$nextTick(() => {
+        this.$refs.editField?.focus();
+        this.$refs.editField?.select();
+      });
+    },
+
+    async saveEdit() {
+      if (!this.editText.trim()) return;
+      await this.patch(this.editTask.id, { text: this.editText.trim() });
+      this.editModal = false;
+    },
+
+    async patch(id, data) {
+      const r = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      this.plan = await r.json();
+    },
+
+    async remove(task) {
+      const r = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+      this.plan = await r.json();
+    },
+
+    async clearAll() {
+      if (!confirm('Clear all tasks for today?')) return;
+      const r = await fetch('/api/plan', { method: 'DELETE' });
+      this.plan = await r.json();
+    },
+
+    closeAll() {
+      this.noteModal = false;
+      this.editModal = false;
+      this.openId = null;
+    },
+  }));
+});
+</script>
+</body>
+</html>

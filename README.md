@@ -2,17 +2,18 @@
 
 > **English** | **[中文](README_CN.md)**
 
-Two minimal CLI tools for your daily workflow:
+Three minimal tools for your daily workflow:
 
 - **`daily`** — open your morning routine websites in one command
 - **`plan`** — manage today's tasks from the terminal, saved locally
+- **`plan-ui`** — the same planner, as a clean desktop-like window
 
 ## Install
 
 ```bash
 git clone https://github.com/Alrightlone/daily-cli.git
 cd daily-cli
-chmod +x daily plan
+chmod +x daily plan plan-ui
 
 # Add to PATH (zsh)
 echo 'export PATH="'$(pwd)':$PATH"' >> ~/.zshrc
@@ -69,7 +70,9 @@ plan add "write draft"     # Add a new task
 plan done 1                # Mark task 1 as done
 plan half 2                # Mark task 2 as half done (prompts for reason)
 plan skip 3                # Mark task 3 as not done (prompts for reason)
+plan edit 1 "new text"     # Rewrite task 1's text (fix typos)
 plan rm 4                  # Remove task 4
+plan clear                 # Remove all tasks for today (with confirmation)
 plan edit                  # Open today's plan in $EDITOR (raw JSON)
 plan show 2026-04-16       # Show a past day's plan
 plan list                  # List all saved dates
@@ -92,12 +95,33 @@ plan help                  # Show help
 
 ---
 
+## `plan-ui` — desktop-style window
+
+```bash
+plan-ui
+```
+
+Launches a local server and opens the planner in a standalone Chrome window
+(no tabs, no URL bar — feels like a native app). All changes sync with the same
+`plans/*.json` files, so `plan` and `plan-ui` edit the same data.
+
+**Features**
+- Click the status circle to pick ✓ done / ◐ half / ✗ skipped (modal asks for reason)
+- Hover a task to edit or delete
+- Auto dark mode based on system preference
+- Press `Esc` to close any modal or popover
+
+Close the window to stop the server, or hit `Ctrl+C` in the terminal.
+
+---
+
 ## Requirements
 
 - macOS
-- Google Chrome (for `daily`)
-- Python 3 (for `plan`, pre-installed on macOS)
+- Google Chrome (for `daily` and `plan-ui`)
+- Python 3 (for `plan` and `plan-ui`, pre-installed on macOS)
 - zsh (default shell on macOS)
+- Internet connection on first UI load (Alpine.js loaded via CDN)
 
 ## License
 

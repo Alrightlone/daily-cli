@@ -151,8 +151,40 @@ def cmd_rm(args):
 
 
 def cmd_edit(args):
-    ed = os.environ.get("EDITOR", "nano")
-    subprocess.call([ed, str(plan_path())])
+    # `plan edit`           → open JSON in $EDITOR
+    # `plan edit <id> text` → rewrite task <id>'s text
+    if not args:
+        ed = os.environ.get("EDITOR", "nano")
+        subprocess.call([ed, str(plan_path())])
+        return
+    tid = parse_id(args, "edit")
+    if len(args) < 2:
+        sys.exit('Usage: plan edit <id> "new text"')
+    plan = load_plan()
+    t = get_task(plan, tid)
+    if not t:
+        sys.exit(f"Task {tid} not found")
+    t["text"] = " ".join(args[1:])
+    save_plan(plan)
+    show_plan(plan)
+
+
+def cmd_clear(args):
+    plan = load_plan()
+    if not plan["tasks"]:
+        print(f"\n  {DIM}No tasks to clear.{RESET}\n")
+        return
+    try:
+        ans = input(f"  {YELLOW}Clear all {len(plan['tasks'])} tasks? [y/N]:{RESET} ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+    if ans == "y":
+        plan["tasks"] = []
+        save_plan(plan)
+        show_plan(plan)
+    else:
+        print(f"  {DIM}Cancelled.{RESET}\n")
 
 
 def cmd_show(args):
@@ -186,6 +218,8 @@ def cmd_help(args):
   plan half <id>             Mark as half done (asks for reason)
   plan skip <id>             Mark as not done (asks for reason)
   plan rm <id>               Remove a task
+  plan clear                 Remove all tasks for today (asks to confirm)
+  plan edit <id> "new text"  Rewrite a task's text
   plan edit                  Open today's plan in $EDITOR
   plan show <YYYY-MM-DD>     Show a past day's plan
   plan list                  List all saved dates
@@ -199,6 +233,7 @@ HANDLERS = {
     "half":   lambda a: cmd_set_status(a, "half", "half", True),
     "skip":   lambda a: cmd_set_status(a, "skip", "skip", True),
     "rm":     cmd_rm,
+    "clear":  cmd_clear,
     "edit":   cmd_edit,
     "show":   cmd_show,
     "list":   cmd_list,
